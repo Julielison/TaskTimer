@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.CalendarDay
 import com.example.tasktimer.model.Task
+import com.example.tasktimer.ui.components.AddTaskDialog
 import com.example.tasktimer.ui.theme.*
 import java.time.LocalDate
 
@@ -39,7 +40,10 @@ fun CalendarScreen(
     val tasksForSelectedDate by viewModel.tasksForSelectedDate.collectAsState()
     val monthYearText by viewModel.monthYearText.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
     val scrollState = rememberScrollState()
+    var showAddTaskDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = DarkBackground,
@@ -52,7 +56,7 @@ fun CalendarScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {},
+                onClick = { showAddTaskDialog = true },
                 containerColor = PrimaryBlue,
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -84,6 +88,19 @@ fun CalendarScreen(
                 onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
             )
         }
+    }
+
+    // Dialog de adicionar tarefa
+    if (showAddTaskDialog) {
+        AddTaskDialog(
+            onDismiss = { showAddTaskDialog = false },
+            onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
+                viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+            },
+            categories = categories,
+            pomodoroPresets = pomodoroPresets,
+            initialDate = selectedDate
+        )
     }
 }
 

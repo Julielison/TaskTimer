@@ -3,6 +3,9 @@ package com.example.tasktimer.ui.calendar
 import androidx.lifecycle.ViewModel
 import com.example.tasktimer.model.CalendarDay
 import com.example.tasktimer.model.Task
+import com.example.tasktimer.model.Category
+import com.example.tasktimer.model.PomodoroConfig
+import com.example.tasktimer.model.Subtask
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,11 +32,21 @@ class CalendarViewModel : ViewModel() {
     private val _monthYearText = MutableStateFlow("")
     val monthYearText: StateFlow<String> = _monthYearText.asStateFlow()
 
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
+
+    private val _pomodoroPresets = MutableStateFlow<List<Pair<String, PomodoroConfig>>>(emptyList())
+    val pomodoroPresets: StateFlow<List<Pair<String, PomodoroConfig>>> = _pomodoroPresets.asStateFlow()
+
     // Simulação de todas as tasks - em produção, vir do repositório
     private val allTasks = mutableListOf<Task>()
+    private var nextTaskId = 7
+    private var nextSubtaskId = 1
 
     init {
         loadMockTasks()
+        loadMockCategories()
+        loadPomodoroPresets()
         loadWeekDays(_currentWeekStart.value)
         selectDate(LocalDate.now())
     }
@@ -75,6 +88,25 @@ class CalendarViewModel : ViewModel() {
             Task(6, "Academia", null,
                 LocalDateTime.of(afterTomorrow.year, afterTomorrow.month, afterTomorrow.dayOfMonth, 7, 0),
                 categoryId = 5)
+        )
+    }
+
+    private fun loadMockCategories() {
+        _categories.value = listOf(
+            Category(1, "Trabalho", androidx.compose.ui.graphics.Color(0xFF4285F4)),
+            Category(2, "Desenvolvimento", androidx.compose.ui.graphics.Color(0xFF34A853)),
+            Category(3, "Pessoal", androidx.compose.ui.graphics.Color(0xFFEA4335)),
+            Category(4, "Estudos", androidx.compose.ui.graphics.Color(0xFFFBBC04)),
+            Category(5, "Saúde", androidx.compose.ui.graphics.Color(0xFF9C27B0))
+        )
+    }
+
+    private fun loadPomodoroPresets() {
+        _pomodoroPresets.value = listOf(
+            "Clássico" to PomodoroConfig(25, 5, 15, 4, 4),
+            "Curto" to PomodoroConfig(15, 3, 10, 4, 6),
+            "Longo" to PomodoroConfig(50, 10, 30, 2, 4),
+            "Intenso" to PomodoroConfig(90, 20, 30, 3, 3)
         )
     }
 
@@ -183,5 +215,43 @@ class CalendarViewModel : ViewModel() {
             // Recarrega os dias da semana para atualizar as estatísticas
             loadWeekDays(_currentWeekStart.value)
         }
+    }
+
+    fun addTask(
+        title: String,
+        description: String?,
+        dateTime: LocalDateTime,
+        categoryId: Int?,
+        subtasks: List<Subtask>,
+        pomodoroConfig: PomodoroConfig?
+    ) {
+        val taskId = nextTaskId++
+        
+        val finalSubtasks = subtasks.map { subtask ->
+            subtask.copy(
+                id = nextSubtaskId++,
+                taskId = taskId
+            )
+        }
+        
+        val newTask = Task(
+            id = taskId,
+            title = title,
+            description = description,
+            dateTime = dateTime,
+            categoryId = categoryId,
+            subtasks = finalSubtasks,
+            pomodoroConfig = pomodoroConfig
+        )
+
+        allTasks.add(newTask)
+
+        // Recarrega as tasks se a nova task for do dia selecionado
+        if (dateTime.toLocalDate() == _selectedDate.value) {
+            loadTasksForDate(_selectedDate.value)
+        }
+
+        // Recarrega os dias da semana para atualizar as estatísticas
+        loadWeekDays(_currentWeekStart.value)
     }
 }
