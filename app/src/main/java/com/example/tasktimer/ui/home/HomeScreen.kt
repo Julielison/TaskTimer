@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -133,7 +134,6 @@ fun HomeTopBar() {
     }
 }
 
-// O restante (TaskItem, HomeBottomBar) permanece igual...
 @Composable
 fun TaskItem(task: Task) {
     Row(
@@ -143,7 +143,10 @@ fun TaskItem(task: Task) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+        ) {
             Checkbox(
                 checked = task.isCompleted,
                 onCheckedChange = {},
@@ -152,16 +155,35 @@ fun TaskItem(task: Task) {
                     checkedColor = PrimaryBlue
                 )
             )
-            Text(
-                text = task.title,
-                color = TextWhite,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium
-            )
+            
+            Column {
+                Text(
+                    text = task.title,
+                    color = if (task.isCompleted) TextGray else TextWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                )
+                
+                if (!task.description.isNullOrBlank()) {
+                    Text(
+                        text = task.description,
+                        color = TextGray,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
         }
+        
         Text(
-            text = task.timeOrDate,
-            color = task.timeColor,
+            text = if (task.isOverdue) task.formattedDate else task.formattedTime,
+            color = when {
+                task.isCompleted -> TextGray
+                task.isOverdue -> Color(0xFFD32F2F)
+                else -> PrimaryBlue
+            },
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )

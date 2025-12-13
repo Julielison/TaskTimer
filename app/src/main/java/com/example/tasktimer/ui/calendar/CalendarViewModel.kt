@@ -1,6 +1,5 @@
 package com.example.tasktimer.ui.calendar
 
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import com.example.tasktimer.model.CalendarDay
 import com.example.tasktimer.model.Task
@@ -8,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.*
@@ -29,9 +29,53 @@ class CalendarViewModel : ViewModel() {
     private val _monthYearText = MutableStateFlow("")
     val monthYearText: StateFlow<String> = _monthYearText.asStateFlow()
 
+    // Simulação de todas as tasks - em produção, vir do repositório
+    private val allTasks = mutableListOf<Task>()
+
     init {
+        loadMockTasks()
         loadWeekDays(_currentWeekStart.value)
         selectDate(LocalDate.now())
+    }
+
+    private fun loadMockTasks() {
+        val today = LocalDate.now()
+        
+        // Tasks para hoje
+        allTasks.addAll(
+            listOf(
+                Task(1, "Reunião de equipe", "Discutir projeto X", 
+                    LocalDateTime.of(today.year, today.month, today.dayOfMonth, 9, 0), 
+                    categoryId = 1),
+                Task(2, "Desenvolver feature", null,
+                    LocalDateTime.of(today.year, today.month, today.dayOfMonth, 14, 30),
+                    categoryId = 2),
+                Task(3, "Code review", "Revisar PR #123",
+                    LocalDateTime.of(today.year, today.month, today.dayOfMonth, 16, 0),
+                    isCompleted = true, categoryId = 2)
+            )
+        )
+        
+        // Tasks para amanhã
+        val tomorrow = today.plusDays(1)
+        allTasks.addAll(
+            listOf(
+                Task(4, "Dentista", null,
+                    LocalDateTime.of(tomorrow.year, tomorrow.month, tomorrow.dayOfMonth, 10, 0),
+                    categoryId = 3),
+                Task(5, "Estudar Kotlin", "Coroutines avançadas",
+                    LocalDateTime.of(tomorrow.year, tomorrow.month, tomorrow.dayOfMonth, 19, 0),
+                    categoryId = 4)
+            )
+        )
+        
+        // Tasks para daqui 2 dias
+        val afterTomorrow = today.plusDays(2)
+        allTasks.add(
+            Task(6, "Academia", null,
+                LocalDateTime.of(afterTomorrow.year, afterTomorrow.month, afterTomorrow.dayOfMonth, 7, 0),
+                categoryId = 5)
+        )
     }
 
     private fun getWeekStart(date: LocalDate): LocalDate {
@@ -47,13 +91,21 @@ class CalendarViewModel : ViewModel() {
             val date = weekStart.plusDays(i.toLong())
             val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
             
+            // Calcula estatísticas de tasks para o dia
+            val tasksForDay = getTasksForDate(date)
+            val completedCount = tasksForDay.count { it.isCompleted }
+            val hasOverdue = tasksForDay.any { it.isOverdue }
+            
             days.add(
                 CalendarDay(
                     dayOfMonth = date.dayOfMonth,
                     dayOfWeek = dayOfWeek.take(3).capitalize(),
                     isToday = date == today,
                     isSelected = date == _selectedDate.value,
-                    fullDate = date
+                    fullDate = date,
+                    taskCount = tasksForDay.size,
+                    completedTaskCount = completedCount,
+                    hasOverdueTasks = hasOverdue
                 )
             )
         }
@@ -106,12 +158,30 @@ class CalendarViewModel : ViewModel() {
     }
 
     private fun loadTasksForDate(date: LocalDate) {
-        // Mock data - em produção, carregar do repositório baseado na data
-        _tasksForSelectedDate.value = listOf(
-            Task(1, "Task1", "6:00", false, false, Color(0xFFFFD600)),
-            Task(2, "Task1", "7:00", false, false, Color(0xFFFFD600)),
-            Task(3, "Task1", "8:00", false, false, Color(0xFF4285F4)),
-            Task(4, "Task1", "9:00", false, false, Color(0xFF4285F4))
-        )
+        _tasksForSelectedDate.value = getTasksForDate(date)
+            .sortedBy { it.dateTime }
+    }
+
+    private fun getTasksForDate(date: LocalDate): List<Task> {
+        return allTasks.filter { task ->
+            task.dateTime.toLocalDate() == date
+        }
+    }
+
+    fun toggleTaskCompletion(taskId: Int) {
+        val taskIndex = allTasks.indexOfFirst { it.id == taskId }
+        if (taskIndex != -1) {
+            val task = allTasks[taskIndex]
+            allTasks[taskIndex] = task.copy(
+                isCompleted = !task.isCompleted,
+                completedAt = if (!task.isCompleted) LocalDateTime.now() else null
+            )
+            
+            // Recarrega as tasks para a data selecionada
+            loadTasksForDate(_selectedDate.value)
+            
+            // Recarrega os dias da semana para atualizar as estatísticas
+            loadWeekDays(_currentWeekStart.value)
+        }
     }
 }
