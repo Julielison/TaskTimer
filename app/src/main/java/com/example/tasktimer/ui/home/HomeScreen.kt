@@ -25,7 +25,11 @@ import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.theme.*
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
+fun HomeScreen(
+    viewModel: HomeViewModel = viewModel(),
+    onNavigateToCalendar: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {}
+) {
     val overdueTasks by viewModel.overdueTasks.collectAsState()
     val todayTasks by viewModel.todayTasks.collectAsState()
 
@@ -35,7 +39,12 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     Scaffold(
         containerColor = DarkBackground,
         topBar = { HomeTopBar() },
-        bottomBar = { HomeBottomBar() },
+        bottomBar = { 
+            HomeBottomBar(
+                onCalendarClick = onNavigateToCalendar,
+                onSearchClick = onNavigateToSearch
+            ) 
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {},
@@ -160,7 +169,10 @@ fun TaskItem(task: Task) {
 }
 
 @Composable
-fun HomeBottomBar() {
+fun HomeBottomBar(
+    onCalendarClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {}
+) {
     NavigationBar(
         containerColor = SurfaceDark,
         contentColor = TextGray
@@ -182,7 +194,7 @@ fun HomeBottomBar() {
             icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
             label = { Text("Calendário") },
             selected = false,
-            onClick = {},
+            onClick = onCalendarClick,
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = TextGray,
                 unselectedTextColor = TextGray
@@ -192,7 +204,7 @@ fun HomeBottomBar() {
             icon = { Icon(Icons.Default.Search, contentDescription = null) },
             label = { Text("Pesquisar") },
             selected = false,
-            onClick = {},
+            onClick = onSearchClick,
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = TextGray,
                 unselectedTextColor = TextGray
