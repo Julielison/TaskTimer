@@ -20,12 +20,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.CalendarDay
 import com.example.tasktimer.model.Task
+import com.example.tasktimer.ui.components.AddTaskDialog
 import com.example.tasktimer.ui.theme.*
+import java.time.LocalDate
 
 @Composable
 fun CalendarScreen(
@@ -36,7 +39,11 @@ fun CalendarScreen(
     val calendarDays by viewModel.calendarDays.collectAsState()
     val tasksForSelectedDate by viewModel.tasksForSelectedDate.collectAsState()
     val monthYearText by viewModel.monthYearText.collectAsState()
+    val selectedDate by viewModel.selectedDate.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
     val scrollState = rememberScrollState()
+    var showAddTaskDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = DarkBackground,
@@ -49,7 +56,7 @@ fun CalendarScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {},
+                onClick = { showAddTaskDialog = true },
                 containerColor = PrimaryBlue,
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -65,10 +72,8 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // Header: Nov, Hoje
             CalendarHeader(monthYearText = monthYearText)
             
-            // Calendário Semanal com gesture de arraste
             WeekCalendar(
                 days = calendarDays,
                 onDayClick = { day -> viewModel.selectDay(day.dayOfMonth) },
@@ -77,9 +82,25 @@ fun CalendarScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Lista de Tasks
-            TasksList(tasks = tasksForSelectedDate)
+            TasksList(
+                tasks = tasksForSelectedDate,
+                selectedDate = selectedDate,
+                onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+            )
         }
+    }
+
+    // Dialog de adicionar tarefa
+    if (showAddTaskDialog) {
+        AddTaskDialog(
+            onDismiss = { showAddTaskDialog = false },
+            onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
+                viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+            },
+            categories = categories,
+            pomodoroPresets = pomodoroPresets,
+            initialDate = selectedDate
+        )
     }
 }
 
@@ -184,18 +205,40 @@ fun CalendarDayItem(
                     shape = CircleShape
                 )
         ) {
-            Text(
-                text = day.dayOfMonth.toString(),
-                color = TextWhite,
-                fontSize = 16.sp,
-                fontWeight = if (day.isSelected) FontWeight.Bold else FontWeight.Normal
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = day.dayOfMonth.toString(),
+                    color = TextWhite,
+                    fontSize = 16.sp,
+                    fontWeight = if (day.isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+                
+                // Indicador de tasks
+                if (day.taskCount > 0 && !day.isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .background(
+                                color = if (day.hasOverdueTasks) Color(0xFFD32F2F) 
+                                       else if (day.completionPercentage == 1f) Color(0xFF4CAF50)
+                                       else PrimaryBlue,
+                                shape = CircleShape
+                            )
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun TasksList(tasks: List<Task>) {
+fun TasksList(
+    tasks: List<Task>,
+    selectedDate: LocalDate,
+    onTaskToggle: (Int) -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SurfaceDark),
         shape = RoundedCornerShape(16.dp),
@@ -204,17 +247,52 @@ fun TasksList(tasks: List<Task>) {
             .padding(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Hoje",
-                color = TextWhite,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            val today = LocalDate.now()
+            val title = when {
+                selectedDate == today -> "Hoje"
+                selectedDate == today.plusDays(1) -> "Amanhã"
+                selectedDate == today.minusDays(1) -> "Ontem"
+                else -> selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    color = TextWhite,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+                
+                if (tasks.isNotEmpty()) {
+                    Text(
+                        text = "${tasks.count { it.isCompleted }}/${tasks.size}",
+                        color = TextGray,
+                        fontSize = 12.sp
+                    )
+                }
+            }
 
-            Column {
-                tasks.forEach { task ->
-                    CalendarTaskItem(task)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (tasks.isEmpty()) {
+                Text(
+                    text = "Nenhuma tarefa para este dia",
+                    color = TextGray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+            } else {
+                Column {
+                    tasks.forEach { task ->
+                        CalendarTaskItem(
+                            task = task,
+                            onToggle = { onTaskToggle(task.id) }
+                        )
+                    }
                 }
             }
         }
@@ -222,7 +300,10 @@ fun TasksList(tasks: List<Task>) {
 }
 
 @Composable
-fun CalendarTaskItem(task: Task) {
+fun CalendarTaskItem(
+    task: Task,
+    onToggle: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -230,28 +311,74 @@ fun CalendarTaskItem(task: Task) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+        ) {
             Checkbox(
                 checked = task.isCompleted,
-                onCheckedChange = {},
+                onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(
                     uncheckedColor = TextGray,
                     checkedColor = PrimaryBlue
                 )
             )
-            Text(
-                text = task.title,
-                color = TextWhite,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium
-            )
+            
+            Column {
+                Text(
+                    text = task.title,
+                    color = if (task.isCompleted) TextGray else TextWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                )
+                
+                if (!task.description.isNullOrBlank()) {
+                    Text(
+                        text = task.description,
+                        color = TextGray,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                
+                // Mostra subtasks se houver
+                if (task.subtasks.isNotEmpty()) {
+                    Text(
+                        text = "${task.subtasks.count { it.isCompleted }}/${task.subtasks.size} subtarefas",
+                        color = TextGray,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
         }
-        Text(
-            text = task.timeOrDate,
-            color = task.timeColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold
-        )
+        
+        Column(
+            horizontalAlignment = Alignment.End
+        ) {
+            Text(
+                text = task.formattedTime,
+                color = when {
+                    task.isCompleted -> TextGray
+                    task.isOverdue -> Color(0xFFD32F2F)
+                    else -> PrimaryBlue
+                },
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+            
+            // Indicador de pomodoro
+            if (task.pomodoroConfig != null) {
+                Text(
+                    text = "🍅 ${task.pomodoroConfig.totalPomodoros}x",
+                    color = TextGray,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
     }
 }
 

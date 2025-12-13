@@ -18,11 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.theme.*
+import com.example.tasktimer.ui.components.AddTaskDialog
 
 @Composable
 fun HomeScreen(
@@ -32,6 +34,9 @@ fun HomeScreen(
 ) {
     val overdueTasks by viewModel.overdueTasks.collectAsState()
     val todayTasks by viewModel.todayTasks.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
+    var showAddTaskDialog by remember { mutableStateOf(false) }
 
     // Estado para rolagem da tela inteira
     val scrollState = rememberScrollState()
@@ -47,7 +52,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {},
+                onClick = { showAddTaskDialog = true },
                 containerColor = PrimaryBlue,
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -62,12 +67,24 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
                 .padding(16.dp)
-                .verticalScroll(scrollState) // Habilita rolagem na tela toda
+                .verticalScroll(scrollState)
         ) {
             TaskSection(title = "Vencidas", tasks = overdueTasks)
             Spacer(modifier = Modifier.height(16.dp))
             TaskSection(title = "Hoje", tasks = todayTasks)
         }
+    }
+
+    // Dialog de adicionar tarefa
+    if (showAddTaskDialog) {
+        AddTaskDialog(
+            onDismiss = { showAddTaskDialog = false },
+            onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
+                viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+            },
+            categories = categories,
+            pomodoroPresets = pomodoroPresets
+        )
     }
 }
 
@@ -133,7 +150,6 @@ fun HomeTopBar() {
     }
 }
 
-// O restante (TaskItem, HomeBottomBar) permanece igual...
 @Composable
 fun TaskItem(task: Task) {
     Row(
@@ -143,7 +159,10 @@ fun TaskItem(task: Task) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+        ) {
             Checkbox(
                 checked = task.isCompleted,
                 onCheckedChange = {},
@@ -152,16 +171,35 @@ fun TaskItem(task: Task) {
                     checkedColor = PrimaryBlue
                 )
             )
-            Text(
-                text = task.title,
-                color = TextWhite,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium
-            )
+            
+            Column {
+                Text(
+                    text = task.title,
+                    color = if (task.isCompleted) TextGray else TextWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                )
+                
+                if (!task.description.isNullOrBlank()) {
+                    Text(
+                        text = task.description,
+                        color = TextGray,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
         }
+        
         Text(
-            text = task.timeOrDate,
-            color = task.timeColor,
+            text = if (task.isOverdue) task.formattedDate else task.formattedTime,
+            color = when {
+                task.isCompleted -> TextGray
+                task.isOverdue -> Color(0xFFD32F2F)
+                else -> PrimaryBlue
+            },
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
