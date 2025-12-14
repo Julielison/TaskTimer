@@ -260,31 +260,48 @@ fun TasksList(
                 selectedDate == today -> "Hoje"
                 selectedDate == today.plusDays(1) -> "Amanhã"
                 selectedDate == today.minusDays(1) -> "Ontem"
-                else -> selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                else -> "" // Não mostra título para outras datas
             }
             
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    color = TextWhite,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                
-                if (tasks.isNotEmpty()) {
+            if (title.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    
+                    if (tasks.isNotEmpty()) {
+                        Text(
+                            text = "${tasks.count { it.isCompleted }}/${tasks.size}",
+                            color = TextGray,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            } else if (tasks.isNotEmpty()) {
+                // Para outras datas, mostra apenas o contador
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = "${tasks.count { it.isCompleted }}/${tasks.size}",
                         color = TextGray,
                         fontSize = 12.sp
                     )
                 }
+                
+                Spacer(modifier = Modifier.height(8.dp))
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             if (tasks.isEmpty()) {
                 Text(

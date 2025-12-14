@@ -15,6 +15,7 @@ import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.*
+import java.util.Locale
 
 class CalendarViewModel : ViewModel() {
 
@@ -87,10 +88,11 @@ class CalendarViewModel : ViewModel() {
     }
 
     private fun updateMonthYearText(weekStart: LocalDate) {
-        val monthName = weekStart.month.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
-            .capitalize()
+        val monthName = weekStart.month.getDisplayName(TextStyle.FULL, Locale("pt", "BR"))
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        val year = weekStart.year
         
-        _monthYearText.value = monthName
+        _monthYearText.value = "$monthName de $year"
     }
 
     fun selectDay(dayOfMonth: Int) {
