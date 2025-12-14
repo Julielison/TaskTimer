@@ -75,7 +75,8 @@ fun DonutChart(
             Text(
                 text = total.toString(),
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color =  Color.White
             )
             Text(
                 text = "min",
