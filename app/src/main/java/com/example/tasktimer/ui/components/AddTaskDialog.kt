@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -39,7 +40,7 @@ fun AddTaskDialog(
     categories: List<Category> = emptyList(),
     pomodoroPresets: List<Pair<String, PomodoroConfig>> = emptyList(),
     initialDate: LocalDate = LocalDate.now(),
-    existingTask: Task? = null // Novo parâmetro para edição
+    existingTask: Task? = null
 ) {
     var title by remember { mutableStateOf(existingTask?.title ?: "") }
     var description by remember { mutableStateOf(existingTask?.description ?: "") }
@@ -50,10 +51,12 @@ fun AddTaskDialog(
     var showTimePicker by remember { mutableStateOf(false) }
     var titleError by remember { mutableStateOf(false) }
     
-    // Subtasks - carrega existentes se houver
+    // Subtasks - carrega existentes se houver (agora com status de conclusão)
     var subtasks by remember { 
         mutableStateOf<List<SubtaskInput>>(
-            existingTask?.subtasks?.map { SubtaskInput(it.id, it.title) } ?: emptyList()
+            existingTask?.subtasks?.map { 
+                SubtaskInput(it.id, it.title, it.isCompleted) 
+            } ?: emptyList()
         ) 
     }
     var newSubtaskTitle by remember { mutableStateOf("") }
@@ -274,19 +277,33 @@ fun AddTaskDialog(
                                     .padding(vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .background(PrimaryBlue, androidx.compose.foundation.shape.CircleShape)
+                                Checkbox(
+                                    checked = subtask.isCompleted,
+                                    onCheckedChange = { isChecked ->
+                                        subtasks = subtasks.map { 
+                                            if (it.id == subtask.id) {
+                                                it.copy(isCompleted = isChecked)
+                                            } else {
+                                                it
+                                            }
+                                        }
+                                    },
+                                    colors = CheckboxDefaults.colors(
+                                        uncheckedColor = TextGray,
+                                        checkedColor = PrimaryBlue
+                                    )
                                 )
+                                
                                 Text(
                                     text = subtask.title,
-                                    color = TextWhite,
+                                    color = if (subtask.isCompleted) TextGray.copy(alpha = 0.6f) else TextWhite,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(horizontal = 12.dp),
-                                    fontSize = 15.sp
+                                        .padding(horizontal = 8.dp),
+                                    fontSize = 15.sp,
+                                    textDecoration = if (subtask.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                                 )
+                                
                                 IconButton(
                                     onClick = {
                                         subtasks = subtasks.filter { it.id != subtask.id }
@@ -326,7 +343,8 @@ fun AddTaskDialog(
                                     if (newSubtaskTitle.isNotBlank()) {
                                         subtasks = subtasks + SubtaskInput(
                                             id = (subtasks.maxOfOrNull { it.id } ?: 0) + 1,
-                                            title = newSubtaskTitle.trim()
+                                            title = newSubtaskTitle.trim(),
+                                            isCompleted = false
                                         )
                                         newSubtaskTitle = ""
                                     }
@@ -556,7 +574,7 @@ fun AddTaskDialog(
                                                 id = input.id,
                                                 taskId = 0,
                                                 title = input.title,
-                                                isCompleted = false,
+                                                isCompleted = input.isCompleted,
                                                 order = index
                                             )
                                         }
@@ -685,7 +703,8 @@ private fun PomodoroConfigField(
 
 private data class SubtaskInput(
     val id: Int,
-    val title: String
+    val title: String,
+    val isCompleted: Boolean = false
 )
 
 @Composable
