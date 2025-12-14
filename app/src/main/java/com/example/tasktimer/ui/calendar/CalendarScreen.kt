@@ -48,7 +48,6 @@ fun CalendarScreen(
 
     Scaffold(
         containerColor = DarkBackground,
-        topBar = { CalendarTopBar() },
         bottomBar = { 
             CalendarBottomBar(
                 onHomeClick = onNavigateToHome,
@@ -122,19 +121,6 @@ fun CalendarScreen(
             existingTask = taskToEdit
         )
     }
-}
-
-@Composable
-fun CalendarTopBar() {
-    Text(
-        text = "Calendário",
-        color = TextWhite,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    )
 }
 
 @Composable

@@ -87,19 +87,10 @@ class CalendarViewModel : ViewModel() {
     }
 
     private fun updateMonthYearText(weekStart: LocalDate) {
-        val today = LocalDate.now()
-        val weekEnd = weekStart.plusDays(6)
-        
         val monthName = weekStart.month.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
             .capitalize()
         
-        val text = if (weekStart <= today && weekEnd >= today) {
-            "$monthName, Hoje"
-        } else {
-            monthName
-        }
-        
-        _monthYearText.value = text
+        _monthYearText.value = monthName
     }
 
     fun selectDay(dayOfMonth: Int) {
