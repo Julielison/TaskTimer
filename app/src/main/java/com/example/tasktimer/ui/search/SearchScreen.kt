@@ -2,15 +2,49 @@ package com.example.tasktimer.ui.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,24 +56,23 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.components.AddTaskDialog
-import com.example.tasktimer.ui.theme.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import com.example.tasktimer.ui.theme.DarkBackground
+import com.example.tasktimer.ui.theme.PrimaryBlue
+import com.example.tasktimer.ui.theme.SurfaceDark
+import com.example.tasktimer.ui.theme.TextGray
+import com.example.tasktimer.ui.theme.TextWhite
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SearchScreen(
-    viewModel: SearchViewModel = viewModel(),
-    onNavigateToHome: () -> Unit = {},
-    onNavigateToCalendar: () -> Unit = {}
+fun SearchContent(
+    viewModel: SearchViewModel = viewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
+    val selectedCategoryIds by viewModel.selectedCategoryIds.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
     var showFilterDialog by remember { mutableStateOf(false) }
-    var showAddTaskDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
     val scrollState = rememberScrollState()
 
@@ -51,25 +84,8 @@ fun SearchScreen(
                 onSearchQueryChange = { viewModel.updateSearchQuery(it) },
                 onSearch = { viewModel.performSearch() },
                 onFilterClick = { showFilterDialog = true },
-                hasActiveFilter = selectedCategoryId != null
+                selectedCategoriesCount = selectedCategoryIds.size
             )
-        },
-        bottomBar = {
-            SearchBottomBar(
-                onHomeClick = onNavigateToHome,
-                onCalendarClick = onNavigateToCalendar
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddTaskDialog = true },
-                containerColor = PrimaryBlue,
-                contentColor = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.size(64.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
-            }
         }
     ) { paddingValues ->
         Column(
@@ -79,15 +95,24 @@ fun SearchScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            // Categoria selecionada
-            if (selectedCategoryId != null) {
-                val category = categories.find { it.id == selectedCategoryId }
-                category?.let {
-                    FilterChip(
-                        category = it,
-                        onRemove = { viewModel.selectCategory(null) }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+            // Categorias selecionadas com FlowRow
+            if (selectedCategoryIds.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    selectedCategoryIds.forEach { categoryId ->
+                        val category = categories.find { it.id == categoryId }
+                        category?.let {
+                            FilterChip(
+                                category = it,
+                                onRemove = { viewModel.removeCategory(categoryId) }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -108,7 +133,7 @@ fun SearchScreen(
                         categories = categories
                     )
                 }
-            } else if (searchQuery.isNotEmpty() || selectedCategoryId != null) {
+            } else if (searchQuery.isNotEmpty() || selectedCategoryIds.isNotEmpty()) {
                 // Mensagem quando não há resultados
                 Box(
                     modifier = Modifier
@@ -164,37 +189,28 @@ fun SearchScreen(
     if (showFilterDialog) {
         FilterDialog(
             categories = categories,
-            selectedCategoryId = selectedCategoryId,
+            selectedCategoryIds = selectedCategoryIds,
             onDismiss = { showFilterDialog = false },
-            onCategorySelected = { categoryId ->
-                viewModel.selectCategory(categoryId)
-                showFilterDialog = false
+            onCategoryToggled = { categoryId ->
+                viewModel.toggleCategory(categoryId)
             }
         )
     }
 
-    // Dialog de adicionar/editar tarefa
-    if (showAddTaskDialog || taskToEdit != null) {
+    // Dialog de editar tarefa
+    if (taskToEdit != null) {
         AddTaskDialog(
-            onDismiss = {
-                showAddTaskDialog = false
-                taskToEdit = null
-            },
+            onDismiss = { taskToEdit = null },
             onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
-                if (taskToEdit != null) {
-                    viewModel.updateTask(
-                        taskToEdit!!.id,
-                        title,
-                        description,
-                        dateTime,
-                        categoryId,
-                        subtasks,
-                        pomodoroConfig
-                    )
-                } else {
-                    viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-                }
-                showAddTaskDialog = false
+                viewModel.updateTask(
+                    taskToEdit!!.id,
+                    title,
+                    description,
+                    dateTime,
+                    categoryId,
+                    subtasks,
+                    pomodoroConfig
+                )
                 taskToEdit = null
             },
             categories = categories,
@@ -211,7 +227,7 @@ fun SearchTopBar(
     onSearchQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onFilterClick: () -> Unit,
-    hasActiveFilter: Boolean
+    selectedCategoriesCount: Int
 ) {
     Surface(
         color = SurfaceDark,
@@ -251,15 +267,28 @@ fun SearchTopBar(
                 keyboardActions = KeyboardActions(onSearch = { onSearch() })
             )
 
-            Badge(
-                containerColor = if (hasActiveFilter) PrimaryBlue else Color.Transparent
-            ) {
+            Box {
                 IconButton(onClick = onFilterClick) {
                     Icon(
                         imageVector = Icons.Default.FilterList,
                         contentDescription = "Filtrar",
-                        tint = if (hasActiveFilter) PrimaryBlue else TextWhite
+                        tint = TextWhite
                     )
+                }
+                
+                if (selectedCategoriesCount > 0) {
+                    Badge(
+                        containerColor = PrimaryBlue,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                    ) {
+                        Text(
+                            text = selectedCategoriesCount.toString(),
+                            color = Color.White,
+                            fontSize = 10.sp
+                        )
+                    }
                 }
             }
         }
@@ -308,55 +337,37 @@ fun FilterChip(
 @Composable
 fun FilterDialog(
     categories: List<com.example.tasktimer.model.Category>,
-    selectedCategoryId: Int?,
+    selectedCategoryIds: Set<Int>,
     onDismiss: () -> Unit,
-    onCategorySelected: (Int?) -> Unit
+    onCategoryToggled: (Int) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Filtrar por categoria", color = TextWhite) },
         text = {
             Column {
-                // Opção "Todas"
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCategorySelected(null) }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = selectedCategoryId == null,
-                        onClick = { onCategorySelected(null) },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = PrimaryBlue,
-                            unselectedColor = TextGray
-                        )
-                    )
-                    Text(
-                        text = "Todas as categorias",
-                        color = TextWhite,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Selecione uma ou mais categorias",
+                    color = TextGray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
                 // Categorias
                 categories.forEach { category ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onCategorySelected(category.id) }
+                            .clickable { onCategoryToggled(category.id) }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(
-                            selected = selectedCategoryId == category.id,
-                            onClick = { onCategorySelected(category.id) },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = PrimaryBlue,
-                                unselectedColor = TextGray
+                        Checkbox(
+                            checked = selectedCategoryIds.contains(category.id),
+                            onCheckedChange = { onCategoryToggled(category.id) },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = PrimaryBlue,
+                                uncheckedColor = TextGray
                             )
                         )
                         Box(
@@ -480,47 +491,3 @@ fun SearchTaskItem(
     }
 }
 
-@Composable
-fun SearchBottomBar(
-    onHomeClick: () -> Unit,
-    onCalendarClick: () -> Unit
-) {
-    NavigationBar(
-        containerColor = SurfaceDark,
-        contentColor = TextGray
-    ) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Check, contentDescription = null) },
-            label = { Text("Tasks") },
-            selected = false,
-            onClick = onHomeClick,
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-            label = { Text("Calendário") },
-            selected = false,
-            onClick = onCalendarClick,
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Search, contentDescription = null) },
-            label = { Text("Pesquisar") },
-            selected = true,
-            onClick = {},
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = TextWhite,
-                selectedTextColor = TextWhite,
-                indicatorColor = SelectedNav,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-    }
-}

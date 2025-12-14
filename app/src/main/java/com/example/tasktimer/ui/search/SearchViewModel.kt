@@ -16,8 +16,8 @@ class SearchViewModel : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedCategoryId = MutableStateFlow<Int?>(null)
-    val selectedCategoryId: StateFlow<Int?> = _selectedCategoryId.asStateFlow()
+    private val _selectedCategoryIds = MutableStateFlow<Set<Int>>(emptySet())
+    val selectedCategoryIds: StateFlow<Set<Int>> = _selectedCategoryIds.asStateFlow()
 
     private val _searchResults = MutableStateFlow<List<Task>>(emptyList())
     val searchResults: StateFlow<List<Task>> = _searchResults.asStateFlow()
@@ -41,16 +41,25 @@ class SearchViewModel : ViewModel() {
         _searchQuery.value = query
     }
 
-    fun selectCategory(categoryId: Int?) {
-        _selectedCategoryId.value = categoryId
-        performSearch()
+    fun toggleCategory(categoryId: Int) {
+        val currentIds = _selectedCategoryIds.value.toMutableSet()
+        if (currentIds.contains(categoryId)) {
+            currentIds.remove(categoryId)
+        } else {
+            currentIds.add(categoryId)
+        }
+        _selectedCategoryIds.value = currentIds
+    }
+
+    fun removeCategory(categoryId: Int) {
+        _selectedCategoryIds.value = _selectedCategoryIds.value - categoryId
     }
 
     fun performSearch() {
         val query = _searchQuery.value.trim()
-        val categoryId = _selectedCategoryId.value
+        val categoryIds = _selectedCategoryIds.value
 
-        if (query.isEmpty() && categoryId == null) {
+        if (query.isEmpty() && categoryIds.isEmpty()) {
             _searchResults.value = emptyList()
             return
         }
@@ -65,20 +74,14 @@ class SearchViewModel : ViewModel() {
                 task.description?.contains(query, ignoreCase = true) == true
             }
 
-            val matchesCategory = if (categoryId == null) {
+            val matchesCategory = if (categoryIds.isEmpty()) {
                 true
             } else {
-                task.categoryId == categoryId
+                task.categoryId in categoryIds
             }
 
             matchesQuery && matchesCategory
         }.sortedByDescending { it.dateTime }
-    }
-
-    fun clearSearch() {
-        _searchQuery.value = ""
-        _selectedCategoryId.value = null
-        _searchResults.value = emptyList()
     }
 
     fun toggleTaskCompletion(taskId: Int) {
@@ -96,18 +99,6 @@ class SearchViewModel : ViewModel() {
         pomodoroConfig: PomodoroConfig?
     ) {
         MockTaskRepository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        performSearch()
-    }
-
-    fun addTask(
-        title: String,
-        description: String?,
-        dateTime: LocalDateTime,
-        categoryId: Int?,
-        subtasks: List<Subtask>,
-        pomodoroConfig: PomodoroConfig?
-    ) {
-        MockTaskRepository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
         performSearch()
     }
 }

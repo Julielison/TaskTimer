@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -147,9 +148,9 @@ fun AddTaskDialog(
                         }
                     }
 
-                    Divider(
-                        color = TextGray.copy(alpha = 0.2f),
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        thickness = DividerDefaults.Thickness, color = TextGray.copy(alpha = 0.2f)
                     )
 
                     // Content com scroll
@@ -712,8 +713,8 @@ fun TimePickerDialog(
     onDismissRequest: () -> Unit,
     onConfirm: (Int, Int) -> Unit
 ) {
-    var selectedHour by remember { mutableStateOf(LocalTime.now().hour) }
-    var selectedMinute by remember { mutableStateOf(LocalTime.now().minute) }
+    var selectedHour by remember { mutableIntStateOf(LocalTime.now().hour) }
+    var selectedMinute by remember { mutableIntStateOf(LocalTime.now().minute) }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
