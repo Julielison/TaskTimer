@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Search
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.example.tasktimer.ui.calendar.CalendarContent
+import com.example.tasktimer.ui.dashboard.FocusStatisticsScreen
 import com.example.tasktimer.ui.home.HomeContent
 import com.example.tasktimer.ui.search.SearchContent
 import com.example.tasktimer.ui.theme.DarkBackground
@@ -31,7 +33,7 @@ import kotlinx.coroutines.launch
 fun NavGraph() {
     val pagerState = rememberPagerState(
         initialPage = 0,
-        pageCount = { 3 }
+        pageCount = { 4 }
     )
     val scope = rememberCoroutineScope()
     
@@ -93,6 +95,24 @@ fun NavGraph() {
                         unselectedTextColor = TextGray
                     )
                 )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.BarChart, contentDescription = null) },
+                    label = { Text("Estatísticas") },
+                    selected = pagerState.currentPage == 3,
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(3)
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = TextWhite,
+                        selectedTextColor = TextWhite,
+                        indicatorColor = SelectedNav,
+                        unselectedIconColor = TextGray,
+                        unselectedTextColor = TextGray
+                    )
+                )
+
             }
         }
     ) { paddingValues ->
@@ -107,6 +127,7 @@ fun NavGraph() {
                 0 -> HomeContent()
                 1 -> CalendarContent()
                 2 -> SearchContent()
+                3 -> FocusStatisticsScreen()
             }
         }
     }
