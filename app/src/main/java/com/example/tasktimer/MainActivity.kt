@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.example.tasktimer.ui.calendar.CalendarScreen
 import com.example.tasktimer.ui.home.HomeScreen
+import com.example.tasktimer.ui.search.SearchScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,6 +22,10 @@ class MainActivity : ComponentActivity() {
                 "calendar" -> CalendarScreen(
                     onNavigateToHome = { currentScreen = "home" },
                     onNavigateToSearch = { currentScreen = "search" }
+                )
+                "search" -> SearchScreen(
+                    onNavigateToHome = { currentScreen = "home" },
+                    onNavigateToCalendar = { currentScreen = "calendar" }
                 )
                 else -> HomeScreen(
                     onNavigateToCalendar = { currentScreen = "calendar" },
