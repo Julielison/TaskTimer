@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
@@ -282,10 +283,8 @@ fun HomeTopBar() {
                 fontWeight = FontWeight.Bold
             )
         }
-        // Usei Icons.Default.Info para garantir compatibilidade
-        // Se quiser Assessment, adicione a dependência: material-icons-extended
         Icon(
-            imageVector = Icons.Default.Info,
+            imageVector = Icons.Filled.Dashboard,
             contentDescription = "Stats",
             tint = TextWhite,
             modifier = Modifier.size(28.dp)
