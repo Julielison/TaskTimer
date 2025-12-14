@@ -13,13 +13,14 @@ object MockTaskRepository {
     private var nextTaskId = 8
     private var nextSubtaskId = 1
     
-    private val categories = listOf(
+    private val categories = mutableListOf(
         Category(1, "Trabalho", androidx.compose.ui.graphics.Color(0xFF4285F4)),
         Category(2, "Desenvolvimento", androidx.compose.ui.graphics.Color(0xFF34A853)),
         Category(3, "Pessoal", androidx.compose.ui.graphics.Color(0xFFEA4335)),
         Category(4, "Estudos", androidx.compose.ui.graphics.Color(0xFFFBBC04)),
         Category(5, "Saúde", androidx.compose.ui.graphics.Color(0xFF9C27B0))
     )
+    private var nextCategoryId = 6
     
     private val pomodoroPresets = listOf(
         "Clássico" to PomodoroConfig(25, 5, 15, 4, 4),
@@ -120,7 +121,7 @@ object MockTaskRepository {
     fun getAllTasks(): List<Task> = allTasks.toList()
     
     // Getter para categorias
-    fun getCategories(): List<Category> = categories
+    fun getCategories(): List<Category> = categories.toList()
     
     // Getter para presets de pomodoro
     fun getPomodoroPresets(): List<Pair<String, PomodoroConfig>> = pomodoroPresets
@@ -241,5 +242,31 @@ object MockTaskRepository {
             it.isCompleted && 
             it.completedAt?.toLocalDate() == today 
         }
+    }
+    
+    // Adicionar nova categoria
+    fun addCategory(name: String, color: androidx.compose.ui.graphics.Color): Category {
+        val newCategory = Category(
+            id = nextCategoryId++,
+            name = name,
+            color = color
+        )
+        categories.add(newCategory)
+        return newCategory
+    }
+    
+    // Atualizar categoria
+    fun updateCategory(categoryId: Int, name: String, color: androidx.compose.ui.graphics.Color): Boolean {
+        val index = categories.indexOfFirst { it.id == categoryId }
+        if (index != -1) {
+            categories[index] = Category(categoryId, name, color)
+            return true
+        }
+        return false
+    }
+    
+    // Deletar categoria
+    fun deleteCategory(categoryId: Int): Boolean {
+        return categories.removeIf { it.id == categoryId }
     }
 }

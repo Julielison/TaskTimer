@@ -55,6 +55,10 @@ class HomeViewModel : ViewModel() {
         }
         updateTaskLists()
     }
+    
+    fun refreshCategories() {
+        _categories.value = MockTaskRepository.getCategories()
+    }
 
     private fun updateTaskLists() {
         val filter = _selectedFilter.value

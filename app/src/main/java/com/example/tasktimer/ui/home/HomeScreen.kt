@@ -92,7 +92,10 @@ fun HomeContent(
                 onFilterSelected = { filter ->
                     viewModel.selectFilter(filter)
                     scope.launch { drawerState.close() }
-                }   
+                },
+                onCategoryAdded = {
+                    viewModel.refreshCategories()
+                }
             )
         }
     ) {
