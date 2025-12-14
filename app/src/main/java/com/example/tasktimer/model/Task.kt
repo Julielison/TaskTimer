@@ -15,7 +15,15 @@ data class Task(
     val completedAt: LocalDateTime? = null
 ) {
     val isOverdue: Boolean
-        get() = !isCompleted && dateTime.isBefore(LocalDateTime.now())
+        get() = !isCompleted && dateTime.toLocalDate().isBefore(java.time.LocalDate.now())
+
+    val isTimePassed: Boolean
+        get() {
+            val now = LocalDateTime.now()
+            return !isCompleted && 
+                   dateTime.toLocalDate() == now.toLocalDate() && 
+                   dateTime.isBefore(now)
+        }
 
     val formattedTime: String
         get() = String.format("%02d:%02d", dateTime.hour, dateTime.minute)

@@ -254,4 +254,49 @@ class CalendarViewModel : ViewModel() {
         // Recarrega os dias da semana para atualizar as estatísticas
         loadWeekDays(_currentWeekStart.value)
     }
+
+    fun updateTask(
+        taskId: Int,
+        title: String,
+        description: String?,
+        dateTime: LocalDateTime,
+        categoryId: Int?,
+        subtasks: List<Subtask>,
+        pomodoroConfig: PomodoroConfig?
+    ) {
+        val taskIndex = allTasks.indexOfFirst { it.id == taskId }
+        if (taskIndex != -1) {
+            val originalTask = allTasks[taskIndex]
+            
+            val finalSubtasks = subtasks.map { subtask ->
+                if (subtask.id > 1000) { // Novo subtask
+                    subtask.copy(
+                        id = nextSubtaskId++,
+                        taskId = taskId
+                    )
+                } else {
+                    subtask.copy(taskId = taskId)
+                }
+            }
+            
+            allTasks[taskIndex] = originalTask.copy(
+                title = title,
+                description = description,
+                dateTime = dateTime,
+                categoryId = categoryId,
+                subtasks = finalSubtasks,
+                pomodoroConfig = pomodoroConfig
+            )
+            
+            // Recarrega as tasks para a data selecionada
+            loadTasksForDate(_selectedDate.value)
+            
+            // Recarrega os dias da semana para atualizar as estatísticas
+            loadWeekDays(_currentWeekStart.value)
+        }
+    }
+
+    fun getTaskById(taskId: Int): Task? {
+        return allTasks.find { it.id == taskId }
+    }
 }

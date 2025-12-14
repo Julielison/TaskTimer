@@ -24,6 +24,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
 import com.example.tasktimer.model.Subtask
+import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.theme.*
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -37,26 +38,31 @@ fun AddTaskDialog(
     onSave: (String, String?, LocalDateTime, Int?, List<Subtask>, PomodoroConfig?) -> Unit,
     categories: List<Category> = emptyList(),
     pomodoroPresets: List<Pair<String, PomodoroConfig>> = emptyList(),
-    initialDate: LocalDate = LocalDate.now()
+    initialDate: LocalDate = LocalDate.now(),
+    existingTask: Task? = null // Novo parâmetro para edição
 ) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf(initialDate) }
-    var selectedTime by remember { mutableStateOf(LocalTime.now()) }
-    var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
+    var title by remember { mutableStateOf(existingTask?.title ?: "") }
+    var description by remember { mutableStateOf(existingTask?.description ?: "") }
+    var selectedDate by remember { mutableStateOf(existingTask?.dateTime?.toLocalDate() ?: initialDate) }
+    var selectedTime by remember { mutableStateOf(existingTask?.dateTime?.toLocalTime() ?: LocalTime.now()) }
+    var selectedCategoryId by remember { mutableStateOf<Int?>(existingTask?.categoryId) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var titleError by remember { mutableStateOf(false) }
     
-    // Subtasks
-    var subtasks by remember { mutableStateOf<List<SubtaskInput>>(emptyList()) }
+    // Subtasks - carrega existentes se houver
+    var subtasks by remember { 
+        mutableStateOf<List<SubtaskInput>>(
+            existingTask?.subtasks?.map { SubtaskInput(it.id, it.title) } ?: emptyList()
+        ) 
+    }
     var newSubtaskTitle by remember { mutableStateOf("") }
     
-    // Pomodoro
-    var enablePomodoro by remember { mutableStateOf(false) }
+    // Pomodoro - carrega configuração existente
+    var enablePomodoro by remember { mutableStateOf(existingTask?.pomodoroConfig != null) }
     var selectedPomodoroPreset by remember { mutableStateOf<String?>(null) }
     var showPomodoroConfig by remember { mutableStateOf(false) }
-    var customPomodoro by remember { mutableStateOf(PomodoroConfig()) }
+    var customPomodoro by remember { mutableStateOf(existingTask?.pomodoroConfig ?: PomodoroConfig()) }
 
     // Animação para slide de baixo para cima
     var isVisible by remember { mutableStateOf(false) }
@@ -123,7 +129,7 @@ fun AddTaskDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Nova Tarefa",
+                            text = if (existingTask != null) "Editar Tarefa" else "Nova Tarefa",
                             color = TextWhite,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold

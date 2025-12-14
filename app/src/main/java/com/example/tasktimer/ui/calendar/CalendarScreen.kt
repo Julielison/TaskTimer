@@ -44,6 +44,7 @@ fun CalendarScreen(
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
     val scrollState = rememberScrollState()
     var showAddTaskDialog by remember { mutableStateOf(false) }
+    var taskToEdit by remember { mutableStateOf<Task?>(null) }
 
     Scaffold(
         containerColor = DarkBackground,
@@ -85,21 +86,40 @@ fun CalendarScreen(
             TasksList(
                 tasks = tasksForSelectedDate,
                 selectedDate = selectedDate,
+                onTaskClick = { task -> taskToEdit = task },
                 onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
             )
         }
     }
 
-    // Dialog de adicionar tarefa
-    if (showAddTaskDialog) {
+    // Dialog de adicionar/editar tarefa
+    if (showAddTaskDialog || taskToEdit != null) {
         AddTaskDialog(
-            onDismiss = { showAddTaskDialog = false },
+            onDismiss = { 
+                showAddTaskDialog = false
+                taskToEdit = null
+            },
             onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
-                viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+                if (taskToEdit != null) {
+                    viewModel.updateTask(
+                        taskToEdit!!.id,
+                        title,
+                        description,
+                        dateTime,
+                        categoryId,
+                        subtasks,
+                        pomodoroConfig
+                    )
+                } else {
+                    viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+                }
+                showAddTaskDialog = false
+                taskToEdit = null
             },
             categories = categories,
             pomodoroPresets = pomodoroPresets,
-            initialDate = selectedDate
+            initialDate = selectedDate,
+            existingTask = taskToEdit
         )
     }
 }
@@ -237,6 +257,7 @@ fun CalendarDayItem(
 fun TasksList(
     tasks: List<Task>,
     selectedDate: LocalDate,
+    onTaskClick: (Task) -> Unit,
     onTaskToggle: (Int) -> Unit
 ) {
     Card(
@@ -290,6 +311,7 @@ fun TasksList(
                     tasks.forEach { task ->
                         CalendarTaskItem(
                             task = task,
+                            onClick = { onTaskClick(task) },
                             onToggle = { onTaskToggle(task.id) }
                         )
                     }
@@ -302,11 +324,13 @@ fun TasksList(
 @Composable
 fun CalendarTaskItem(
     task: Task,
+    onClick: () -> Unit,
     onToggle: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -327,7 +351,7 @@ fun CalendarTaskItem(
             Column {
                 Text(
                     text = task.title,
-                    color = if (task.isCompleted) TextGray else TextWhite,
+                    color = if (task.isCompleted) TextGray.copy(alpha = 0.6f) else TextWhite,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
@@ -336,7 +360,7 @@ fun CalendarTaskItem(
                 if (!task.description.isNullOrBlank()) {
                     Text(
                         text = task.description,
-                        color = TextGray,
+                        color = if (task.isCompleted) TextGray.copy(alpha = 0.4f) else TextGray,
                         fontSize = 12.sp,
                         maxLines = 1,
                         modifier = Modifier.padding(top = 2.dp)
@@ -347,7 +371,7 @@ fun CalendarTaskItem(
                 if (task.subtasks.isNotEmpty()) {
                     Text(
                         text = "${task.subtasks.count { it.isCompleted }}/${task.subtasks.size} subtarefas",
-                        color = TextGray,
+                        color = if (task.isCompleted) TextGray.copy(alpha = 0.4f) else TextGray,
                         fontSize = 11.sp,
                         modifier = Modifier.padding(top = 2.dp)
                     )
@@ -361,8 +385,9 @@ fun CalendarTaskItem(
             Text(
                 text = task.formattedTime,
                 color = when {
-                    task.isCompleted -> TextGray
+                    task.isCompleted -> TextGray.copy(alpha = 0.5f)
                     task.isOverdue -> Color(0xFFD32F2F)
+                    task.isTimePassed -> Color(0xFFFFD600) // Amarelo quando o horário passou
                     else -> PrimaryBlue
                 },
                 fontSize = 12.sp,
@@ -373,7 +398,7 @@ fun CalendarTaskItem(
             if (task.pomodoroConfig != null) {
                 Text(
                     text = "🍅 ${task.pomodoroConfig.totalPomodoros}x",
-                    color = TextGray,
+                    color = if (task.isCompleted) TextGray.copy(alpha = 0.4f) else TextGray,
                     fontSize = 10.sp,
                     modifier = Modifier.padding(top = 2.dp)
                 )

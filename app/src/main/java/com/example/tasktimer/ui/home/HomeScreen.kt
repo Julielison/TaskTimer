@@ -1,5 +1,6 @@
 package com.example.tasktimer.ui.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,9 +35,11 @@ fun HomeScreen(
 ) {
     val overdueTasks by viewModel.overdueTasks.collectAsState()
     val todayTasks by viewModel.todayTasks.collectAsState()
+    val completedTasks by viewModel.completedTasks.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
     var showAddTaskDialog by remember { mutableStateOf(false) }
+    var taskToEdit by remember { mutableStateOf<Task?>(null) }
 
     // Estado para rolagem da tela inteira
     val scrollState = rememberScrollState()
@@ -69,27 +72,111 @@ fun HomeScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            TaskSection(title = "Vencidas", tasks = overdueTasks)
-            Spacer(modifier = Modifier.height(16.dp))
-            TaskSection(title = "Hoje", tasks = todayTasks)
+            // Vencidas
+            if (overdueTasks.isNotEmpty()) {
+                TaskSection(
+                    title = "Vencidas", 
+                    tasks = overdueTasks,
+                    onTaskClick = { task -> taskToEdit = task },
+                    onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // Hoje
+            if (todayTasks.isNotEmpty()) {
+                TaskSection(
+                    title = "Hoje", 
+                    tasks = todayTasks,
+                    onTaskClick = { task -> taskToEdit = task },
+                    onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // Concluídas
+            if (completedTasks.isNotEmpty()) {
+                TaskSection(
+                    title = "Concluídas", 
+                    tasks = completedTasks,
+                    onTaskClick = { task -> taskToEdit = task },
+                    onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                )
+            }
+            
+            // Mensagem quando não há tasks
+            if (overdueTasks.isEmpty() && todayTasks.isEmpty() && completedTasks.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "🎉",
+                            fontSize = 48.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Nenhuma tarefa para hoje",
+                            color = TextGray,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Clique no + para adicionar uma nova tarefa",
+                            color = TextGray.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
         }
     }
 
-    // Dialog de adicionar tarefa
-    if (showAddTaskDialog) {
+    // Dialog de adicionar/editar tarefa
+    if (showAddTaskDialog || taskToEdit != null) {
         AddTaskDialog(
-            onDismiss = { showAddTaskDialog = false },
+            onDismiss = { 
+                showAddTaskDialog = false
+                taskToEdit = null
+            },
             onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
-                viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+                if (taskToEdit != null) {
+                    viewModel.updateTask(
+                        taskToEdit!!.id,
+                        title,
+                        description,
+                        dateTime,
+                        categoryId,
+                        subtasks,
+                        pomodoroConfig
+                    )
+                } else {
+                    viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+                }
+                showAddTaskDialog = false
+                taskToEdit = null
             },
             categories = categories,
-            pomodoroPresets = pomodoroPresets
+            pomodoroPresets = pomodoroPresets,
+            existingTask = taskToEdit
         )
     }
 }
 
 @Composable
-fun TaskSection(title: String, tasks: List<Task>) {
+fun TaskSection(
+    title: String, 
+    tasks: List<Task>,
+    onTaskClick: (Task) -> Unit,
+    onTaskToggle: (Int) -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SurfaceDark),
         shape = RoundedCornerShape(16.dp),
@@ -104,11 +191,13 @@ fun TaskSection(title: String, tasks: List<Task>) {
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // CORREÇÃO: Usamos forEach em vez de LazyColumn aqui
-            // LazyColumn não funciona bem dentro de containers roláveis
             Column {
                 tasks.forEach { task ->
-                    TaskItem(task)
+                    TaskItem(
+                        task = task,
+                        onClick = { onTaskClick(task) },
+                        onToggle = { onTaskToggle(task.id) }
+                    )
                 }
             }
         }
@@ -151,10 +240,15 @@ fun HomeTopBar() {
 }
 
 @Composable
-fun TaskItem(task: Task) {
+fun TaskItem(
+    task: Task,
+    onClick: () -> Unit,
+    onToggle: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -165,7 +259,7 @@ fun TaskItem(task: Task) {
         ) {
             Checkbox(
                 checked = task.isCompleted,
-                onCheckedChange = {},
+                onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(
                     uncheckedColor = TextGray,
                     checkedColor = PrimaryBlue
@@ -175,7 +269,7 @@ fun TaskItem(task: Task) {
             Column {
                 Text(
                     text = task.title,
-                    color = if (task.isCompleted) TextGray else TextWhite,
+                    color = if (task.isCompleted) TextGray.copy(alpha = 0.6f) else TextWhite,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
@@ -184,7 +278,7 @@ fun TaskItem(task: Task) {
                 if (!task.description.isNullOrBlank()) {
                     Text(
                         text = task.description,
-                        color = TextGray,
+                        color = if (task.isCompleted) TextGray.copy(alpha = 0.4f) else TextGray,
                         fontSize = 12.sp,
                         maxLines = 1,
                         modifier = Modifier.padding(top = 2.dp)
@@ -196,8 +290,9 @@ fun TaskItem(task: Task) {
         Text(
             text = if (task.isOverdue) task.formattedDate else task.formattedTime,
             color = when {
-                task.isCompleted -> TextGray
+                task.isCompleted -> TextGray.copy(alpha = 0.5f)
                 task.isOverdue -> Color(0xFFD32F2F)
+                task.isTimePassed -> Color(0xFFFFD600) // Amarelo quando o horário passou
                 else -> PrimaryBlue
             },
             fontSize = 12.sp,

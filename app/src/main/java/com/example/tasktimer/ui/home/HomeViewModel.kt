@@ -19,6 +19,9 @@ class HomeViewModel : ViewModel() {
     private val _todayTasks = MutableStateFlow<List<Task>>(emptyList())
     val todayTasks: StateFlow<List<Task>> = _todayTasks.asStateFlow()
 
+    private val _completedTasks = MutableStateFlow<List<Task>>(emptyList())
+    val completedTasks: StateFlow<List<Task>> = _completedTasks.asStateFlow()
+
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories.asStateFlow()
 
@@ -115,13 +118,23 @@ class HomeViewModel : ViewModel() {
     private fun updateTaskLists() {
         val today = LocalDate.now()
 
+        // Tasks vencidas (não concluídas e anteriores a hoje)
         _overdueTasks.value = allTasks
-            .filter { it.isOverdue }
+            .filter { it.isOverdue && !it.isCompleted }
             .sortedBy { it.dateTime }
 
+        // Tasks de hoje (não concluídas)
         _todayTasks.value = allTasks
-            .filter { it.dateTime.toLocalDate() == today }
+            .filter { it.dateTime.toLocalDate() == today && !it.isCompleted }
             .sortedBy { it.dateTime }
+
+        // Tasks concluídas hoje (independente da data original da task)
+        _completedTasks.value = allTasks
+            .filter {
+                it.isCompleted &&
+                it.completedAt?.toLocalDate() == today
+            }
+            .sortedByDescending { it.completedAt }
     }
 
     fun toggleTaskCompletion(taskId: Int) {
@@ -134,6 +147,47 @@ class HomeViewModel : ViewModel() {
             )
             updateTaskLists()
         }
+    }
+
+    fun updateTask(
+        taskId: Int,
+        title: String,
+        description: String?,
+        dateTime: LocalDateTime,
+        categoryId: Int?,
+        subtasks: List<Subtask>,
+        pomodoroConfig: PomodoroConfig?
+    ) {
+        val taskIndex = allTasks.indexOfFirst { it.id == taskId }
+        if (taskIndex != -1) {
+            val originalTask = allTasks[taskIndex]
+
+            val finalSubtasks = subtasks.map { subtask ->
+                if (subtask.id > 1000) { // Novo subtask
+                    subtask.copy(
+                        id = nextSubtaskId++,
+                        taskId = taskId
+                    )
+                } else {
+                    subtask.copy(taskId = taskId)
+                }
+            }
+
+            allTasks[taskIndex] = originalTask.copy(
+                title = title,
+                description = description,
+                dateTime = dateTime,
+                categoryId = categoryId,
+                subtasks = finalSubtasks,
+                pomodoroConfig = pomodoroConfig
+            )
+
+            updateTaskLists()
+        }
+    }
+
+    fun getTaskById(taskId: Int): Task? {
+        return allTasks.find { it.id == taskId }
     }
 
     fun addTask(
