@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +41,11 @@ fun DrawerContent(
                 modifier = Modifier.padding(vertical = 16.dp)
             )
 
-            Divider(color = TextGray.copy(alpha = 0.2f))
+            HorizontalDivider(
+                Modifier,
+                DividerDefaults.Thickness,
+                color = TextGray.copy(alpha = 0.2f)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -77,7 +82,7 @@ fun DrawerContent(
                     icon = getCategoryIcon(category.name),
                     color = category.color,
                     isSelected = selectedFilter is TaskFilter.Category && 
-                                 (selectedFilter as TaskFilter.Category).categoryId == category.id,
+                                 selectedFilter.categoryId == category.id,
                     onClick = { onFilterSelected(TaskFilter.Category(category.id)) }
                 )
             }

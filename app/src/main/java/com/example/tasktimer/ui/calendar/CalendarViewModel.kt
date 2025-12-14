@@ -3,10 +3,10 @@ package com.example.tasktimer.ui.calendar
 import androidx.lifecycle.ViewModel
 import com.example.tasktimer.data.MockTaskRepository
 import com.example.tasktimer.model.CalendarDay
-import com.example.tasktimer.model.Task
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
 import com.example.tasktimer.model.Subtask
+import com.example.tasktimer.model.Task
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +14,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
-import java.util.*
 import java.util.Locale
 
 class CalendarViewModel : ViewModel() {
@@ -26,7 +25,6 @@ class CalendarViewModel : ViewModel() {
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
     private val _currentWeekStart = MutableStateFlow<LocalDate>(getWeekStart(LocalDate.now()))
-    val currentWeekStart: StateFlow<LocalDate> = _currentWeekStart.asStateFlow()
 
     private val _tasksForSelectedDate = MutableStateFlow<List<Task>>(emptyList())
     val tasksForSelectedDate: StateFlow<List<Task>> = _tasksForSelectedDate.asStateFlow()
@@ -72,7 +70,7 @@ class CalendarViewModel : ViewModel() {
             days.add(
                 CalendarDay(
                     dayOfMonth = date.dayOfMonth,
-                    dayOfWeek = dayOfWeek.take(3).capitalize(),
+                    dayOfWeek = dayOfWeek.take(3).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
                     isToday = date == today,
                     isSelected = date == _selectedDate.value,
                     fullDate = date,
@@ -122,18 +120,6 @@ class CalendarViewModel : ViewModel() {
         }
     }
 
-    fun goToToday() {
-        val today = LocalDate.now()
-        val todayWeekStart = getWeekStart(today)
-        
-        if (_currentWeekStart.value != todayWeekStart) {
-            _currentWeekStart.value = todayWeekStart
-            loadWeekDays(todayWeekStart)
-        }
-        
-        selectDate(today)
-    }
-
     private fun loadTasksForDate(date: LocalDate) {
         _tasksForSelectedDate.value = MockTaskRepository.getTasksByDate(date)
             .sortedBy { it.dateTime }
@@ -173,9 +159,5 @@ class CalendarViewModel : ViewModel() {
         MockTaskRepository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
         loadTasksForDate(_selectedDate.value)
         loadWeekDays(_currentWeekStart.value)
-    }
-
-    fun getTaskById(taskId: Int): Task? {
-        return MockTaskRepository.getTaskById(taskId)
     }
 }

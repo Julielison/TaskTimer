@@ -84,12 +84,6 @@ class SearchViewModel : ViewModel() {
         }.sortedByDescending { it.dateTime }
     }
 
-    fun clearSearch() {
-        _searchQuery.value = ""
-        _selectedCategoryIds.value = emptySet()
-        _searchResults.value = emptyList()
-    }
-
     fun toggleTaskCompletion(taskId: Int) {
         MockTaskRepository.toggleTaskCompletion(taskId)
         performSearch() // Atualiza resultados
@@ -105,18 +99,6 @@ class SearchViewModel : ViewModel() {
         pomodoroConfig: PomodoroConfig?
     ) {
         MockTaskRepository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        performSearch()
-    }
-
-    fun addTask(
-        title: String,
-        description: String?,
-        dateTime: LocalDateTime,
-        categoryId: Int?,
-        subtasks: List<Subtask>,
-        pomodoroConfig: PomodoroConfig?
-    ) {
-        MockTaskRepository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
         performSearch()
     }
 }

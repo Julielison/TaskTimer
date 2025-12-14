@@ -112,10 +112,6 @@ class HomeViewModel : ViewModel() {
         updateTaskLists()
     }
 
-    fun getTaskById(taskId: Int): Task? {
-        return MockTaskRepository.getTaskById(taskId)
-    }
-
     fun addTask(
         title: String,
         description: String?,
