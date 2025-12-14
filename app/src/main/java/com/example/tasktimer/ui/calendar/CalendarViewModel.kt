@@ -120,6 +120,18 @@ class CalendarViewModel : ViewModel() {
         }
     }
 
+    fun goToToday() {
+        val today = LocalDate.now()
+        val todayWeekStart = getWeekStart(today)
+        
+        if (_currentWeekStart.value != todayWeekStart) {
+            _currentWeekStart.value = todayWeekStart
+            loadWeekDays(todayWeekStart)
+        }
+        
+        selectDate(today)
+    }
+
     private fun loadTasksForDate(date: LocalDate) {
         _tasksForSelectedDate.value = MockTaskRepository.getTasksByDate(date)
             .sortedBy { it.dateTime }

@@ -51,6 +51,7 @@ fun CalendarScreen(
         bottomBar = { 
             CalendarBottomBar(
                 onHomeClick = onNavigateToHome,
+                onCalendarClick = { viewModel.goToToday() },
                 onSearchClick = onNavigateToSearch
             ) 
         },
@@ -396,6 +397,7 @@ fun CalendarTaskItem(
 @Composable
 fun CalendarBottomBar(
     onHomeClick: () -> Unit,
+    onCalendarClick: () -> Unit,
     onSearchClick: () -> Unit
 ) {
     NavigationBar(
@@ -416,7 +418,7 @@ fun CalendarBottomBar(
             icon = { Icon(androidx.compose.material.icons.Icons.Default.DateRange, contentDescription = null) },
             label = { Text("Calendário") },
             selected = true,
-            onClick = {},
+            onClick = onCalendarClick,
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = TextWhite,
                 selectedTextColor = TextWhite,
