@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Info // Trocado Assessment por Info (nativo)
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,6 +45,10 @@ fun HomeScreen(
 
     // Estado para rolagem da tela inteira
     val scrollState = rememberScrollState()
+
+    var isOverdueExpanded by remember { mutableStateOf(true) }
+    var isTodayExpanded by remember { mutableStateOf(true) }
+    var isCompletedExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = DarkBackground,
@@ -75,8 +81,11 @@ fun HomeScreen(
             // Vencidas
             if (overdueTasks.isNotEmpty()) {
                 TaskSection(
-                    title = "Vencidas", 
+                    title = "Vencidas",
+                    taskCount = overdueTasks.size,
                     tasks = overdueTasks,
+                    isExpanded = isOverdueExpanded,
+                    onToggleExpand = { isOverdueExpanded = !isOverdueExpanded },
                     onTaskClick = { task -> taskToEdit = task },
                     onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
                 )
@@ -86,8 +95,11 @@ fun HomeScreen(
             // Hoje
             if (todayTasks.isNotEmpty()) {
                 TaskSection(
-                    title = "Hoje", 
+                    title = "Hoje",
+                    taskCount = todayTasks.size,
                     tasks = todayTasks,
+                    isExpanded = isTodayExpanded,
+                    onToggleExpand = { isTodayExpanded = !isTodayExpanded },
                     onTaskClick = { task -> taskToEdit = task },
                     onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
                 )
@@ -97,8 +109,11 @@ fun HomeScreen(
             // Concluídas
             if (completedTasks.isNotEmpty()) {
                 TaskSection(
-                    title = "Concluídas", 
+                    title = "Concluídas",
+                    taskCount = completedTasks.size,
                     tasks = completedTasks,
+                    isExpanded = isCompletedExpanded,
+                    onToggleExpand = { isCompletedExpanded = !isCompletedExpanded },
                     onTaskClick = { task -> taskToEdit = task },
                     onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
                 )
@@ -172,8 +187,11 @@ fun HomeScreen(
 
 @Composable
 fun TaskSection(
-    title: String, 
+    title: String,
+    taskCount: Int,
     tasks: List<Task>,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
     onTaskClick: (Task) -> Unit,
     onTaskToggle: (Int) -> Unit
 ) {
@@ -183,21 +201,57 @@ fun TaskSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                color = TextWhite,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Column {
-                tasks.forEach { task ->
-                    TaskItem(
-                        task = task,
-                        onClick = { onTaskClick(task) },
-                        onToggle = { onTaskToggle(task.id) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpand() }
+                    .padding(bottom = if (isExpanded) 8.dp else 0.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = title,
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
                     )
+                    
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = TextGray.copy(alpha = 0.2f),
+                        modifier = Modifier.padding(start = 4.dp)
+                    ) {
+                        Text(
+                            text = taskCount.toString(),
+                            color = TextWhite,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Recolher" else "Expandir",
+                    tint = TextGray,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            if (isExpanded) {
+                Column {
+                    tasks.forEach { task ->
+                        TaskItem(
+                            task = task,
+                            onClick = { onTaskClick(task) },
+                            onToggle = { onTaskToggle(task.id) }
+                        )
+                    }
                 }
             }
         }
