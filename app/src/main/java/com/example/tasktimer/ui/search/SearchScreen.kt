@@ -28,10 +28,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(
-    viewModel: SearchViewModel = viewModel(),
-    onNavigateToHome: () -> Unit = {},
-    onNavigateToCalendar: () -> Unit = {}
+fun SearchContent(
+    viewModel: SearchViewModel = viewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCategoryIds by viewModel.selectedCategoryIds.collectAsState()
@@ -39,7 +37,6 @@ fun SearchScreen(
     val categories by viewModel.categories.collectAsState()
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
     var showFilterDialog by remember { mutableStateOf(false) }
-    var showAddTaskDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
     val scrollState = rememberScrollState()
 
@@ -53,23 +50,6 @@ fun SearchScreen(
                 onFilterClick = { showFilterDialog = true },
                 selectedCategoriesCount = selectedCategoryIds.size
             )
-        },
-        bottomBar = {
-            SearchBottomBar(
-                onHomeClick = onNavigateToHome,
-                onCalendarClick = onNavigateToCalendar
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddTaskDialog = true },
-                containerColor = PrimaryBlue,
-                contentColor = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.size(64.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
-            }
         }
     ) { paddingValues ->
         Column(
@@ -180,28 +160,20 @@ fun SearchScreen(
         )
     }
 
-    // Dialog de adicionar/editar tarefa
-    if (showAddTaskDialog || taskToEdit != null) {
+    // Dialog de editar tarefa
+    if (taskToEdit != null) {
         AddTaskDialog(
-            onDismiss = {
-                showAddTaskDialog = false
-                taskToEdit = null
-            },
+            onDismiss = { taskToEdit = null },
             onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
-                if (taskToEdit != null) {
-                    viewModel.updateTask(
-                        taskToEdit!!.id,
-                        title,
-                        description,
-                        dateTime,
-                        categoryId,
-                        subtasks,
-                        pomodoroConfig
-                    )
-                } else {
-                    viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-                }
-                showAddTaskDialog = false
+                viewModel.updateTask(
+                    taskToEdit!!.id,
+                    title,
+                    description,
+                    dateTime,
+                    categoryId,
+                    subtasks,
+                    pomodoroConfig
+                )
                 taskToEdit = null
             },
             categories = categories,

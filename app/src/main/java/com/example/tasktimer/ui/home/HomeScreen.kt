@@ -35,17 +35,15 @@ import com.example.tasktimer.ui.components.DrawerContent
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(
-    viewModel: HomeViewModel = viewModel(),
-    onNavigateToCalendar: () -> Unit = {},
-    onNavigateToSearch: () -> Unit = {}
+fun HomeContent(
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel()
 ) {
     val overdueTasks by viewModel.overdueTasks.collectAsState()
     val todayTasks by viewModel.todayTasks.collectAsState()
     val completedTasks by viewModel.completedTasks.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
-    val selectedFilter by viewModel.selectedFilter.collectAsState()
     val filterTitle by viewModel.filterTitle.collectAsState()
     var showAddTaskDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
@@ -64,7 +62,7 @@ fun HomeScreen(
         drawerContent = {
             DrawerContent(
                 categories = categories,
-                selectedFilter = selectedFilter,
+                selectedFilter = viewModel.selectedFilter.collectAsState().value,
                 onFilterSelected = { filter ->
                     viewModel.selectFilter(filter)
                     scope.launch { drawerState.close() }
@@ -82,12 +80,6 @@ fun HomeScreen(
                     }
                 ) 
             },
-            bottomBar = { 
-                HomeBottomBar(
-                    onCalendarClick = onNavigateToCalendar,
-                    onSearchClick = onNavigateToSearch
-                ) 
-            },
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { showAddTaskDialog = true },
@@ -98,7 +90,8 @@ fun HomeScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
                 }
-            }
+            },
+            modifier = modifier
         ) { paddingValues ->
             Column(
                 modifier = Modifier

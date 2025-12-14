@@ -32,9 +32,29 @@ import java.time.LocalDate
 
 @Composable
 fun CalendarScreen(
-    viewModel: CalendarViewModel = viewModel(),
     onNavigateToHome: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {}
+) {
+    Scaffold(
+        containerColor = DarkBackground,
+        bottomBar = { 
+            CalendarBottomBar(
+                onHomeClick = onNavigateToHome,
+                onCalendarClick = { /* Não faz nada, estamos na tela de calendário */ },
+                onSearchClick = onNavigateToSearch
+            ) 
+        }
+    ) { paddingValues ->
+        CalendarContent(
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
+}
+
+@Composable
+fun CalendarContent(
+    viewModel: CalendarViewModel = viewModel(),
+    modifier: Modifier = Modifier
 ) {
     val calendarDays by viewModel.calendarDays.collectAsState()
     val tasksForSelectedDate by viewModel.tasksForSelectedDate.collectAsState()
@@ -48,13 +68,6 @@ fun CalendarScreen(
 
     Scaffold(
         containerColor = DarkBackground,
-        bottomBar = { 
-            CalendarBottomBar(
-                onHomeClick = onNavigateToHome,
-                onCalendarClick = { viewModel.goToToday() },
-                onSearchClick = onNavigateToSearch
-            ) 
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddTaskDialog = true },
@@ -65,7 +78,8 @@ fun CalendarScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
             }
-        }
+        },
+        modifier = modifier
     ) { paddingValues ->
         Column(
             modifier = Modifier
