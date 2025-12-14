@@ -60,6 +60,7 @@ fun HomeScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             DrawerContent(
                 categories = categories,
@@ -67,7 +68,7 @@ fun HomeScreen(
                 onFilterSelected = { filter ->
                     viewModel.selectFilter(filter)
                     scope.launch { drawerState.close() }
-                }
+                }   
             )
         }
     ) {
