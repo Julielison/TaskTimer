@@ -34,7 +34,7 @@ fun SearchScreen(
     onNavigateToCalendar: () -> Unit = {}
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
+    val selectedCategoryIds by viewModel.selectedCategoryIds.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
@@ -51,7 +51,7 @@ fun SearchScreen(
                 onSearchQueryChange = { viewModel.updateSearchQuery(it) },
                 onSearch = { viewModel.performSearch() },
                 onFilterClick = { showFilterDialog = true },
-                hasActiveFilter = selectedCategoryId != null
+                selectedCategoriesCount = selectedCategoryIds.size
             )
         },
         bottomBar = {
@@ -79,15 +79,23 @@ fun SearchScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            // Categoria selecionada
-            if (selectedCategoryId != null) {
-                val category = categories.find { it.id == selectedCategoryId }
-                category?.let {
-                    FilterChip(
-                        category = it,
-                        onRemove = { viewModel.selectCategory(null) }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+            // Categorias selecionadas
+            if (selectedCategoryIds.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    selectedCategoryIds.forEach { categoryId ->
+                        val category = categories.find { it.id == categoryId }
+                        category?.let {
+                            FilterChip(
+                                category = it,
+                                onRemove = { viewModel.removeCategory(categoryId) }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -108,7 +116,7 @@ fun SearchScreen(
                         categories = categories
                     )
                 }
-            } else if (searchQuery.isNotEmpty() || selectedCategoryId != null) {
+            } else if (searchQuery.isNotEmpty() || selectedCategoryIds.isNotEmpty()) {
                 // Mensagem quando não há resultados
                 Box(
                     modifier = Modifier
@@ -164,11 +172,10 @@ fun SearchScreen(
     if (showFilterDialog) {
         FilterDialog(
             categories = categories,
-            selectedCategoryId = selectedCategoryId,
+            selectedCategoryIds = selectedCategoryIds,
             onDismiss = { showFilterDialog = false },
-            onCategorySelected = { categoryId ->
-                viewModel.selectCategory(categoryId)
-                showFilterDialog = false
+            onCategoryToggled = { categoryId ->
+                viewModel.toggleCategory(categoryId)
             }
         )
     }
@@ -211,7 +218,7 @@ fun SearchTopBar(
     onSearchQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onFilterClick: () -> Unit,
-    hasActiveFilter: Boolean
+    selectedCategoriesCount: Int
 ) {
     Surface(
         color = SurfaceDark,
@@ -251,15 +258,28 @@ fun SearchTopBar(
                 keyboardActions = KeyboardActions(onSearch = { onSearch() })
             )
 
-            Badge(
-                containerColor = if (hasActiveFilter) PrimaryBlue else Color.Transparent
-            ) {
+            Box {
                 IconButton(onClick = onFilterClick) {
                     Icon(
                         imageVector = Icons.Default.FilterList,
                         contentDescription = "Filtrar",
-                        tint = if (hasActiveFilter) PrimaryBlue else TextWhite
+                        tint = TextWhite
                     )
+                }
+                
+                if (selectedCategoriesCount > 0) {
+                    Badge(
+                        containerColor = PrimaryBlue,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                    ) {
+                        Text(
+                            text = selectedCategoriesCount.toString(),
+                            color = Color.White,
+                            fontSize = 10.sp
+                        )
+                    }
                 }
             }
         }
@@ -308,55 +328,37 @@ fun FilterChip(
 @Composable
 fun FilterDialog(
     categories: List<com.example.tasktimer.model.Category>,
-    selectedCategoryId: Int?,
+    selectedCategoryIds: Set<Int>,
     onDismiss: () -> Unit,
-    onCategorySelected: (Int?) -> Unit
+    onCategoryToggled: (Int) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Filtrar por categoria", color = TextWhite) },
         text = {
             Column {
-                // Opção "Todas"
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCategorySelected(null) }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = selectedCategoryId == null,
-                        onClick = { onCategorySelected(null) },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = PrimaryBlue,
-                            unselectedColor = TextGray
-                        )
-                    )
-                    Text(
-                        text = "Todas as categorias",
-                        color = TextWhite,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Selecione uma ou mais categorias",
+                    color = TextGray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
                 // Categorias
                 categories.forEach { category ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onCategorySelected(category.id) }
+                            .clickable { onCategoryToggled(category.id) }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(
-                            selected = selectedCategoryId == category.id,
-                            onClick = { onCategorySelected(category.id) },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = PrimaryBlue,
-                                unselectedColor = TextGray
+                        Checkbox(
+                            checked = selectedCategoryIds.contains(category.id),
+                            onCheckedChange = { onCategoryToggled(category.id) },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = PrimaryBlue,
+                                uncheckedColor = TextGray
                             )
                         )
                         Box(
