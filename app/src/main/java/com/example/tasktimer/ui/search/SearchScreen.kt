@@ -2,15 +2,49 @@ package com.example.tasktimer.ui.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,11 +56,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.components.AddTaskDialog
-import com.example.tasktimer.ui.theme.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import com.example.tasktimer.ui.theme.DarkBackground
+import com.example.tasktimer.ui.theme.PrimaryBlue
+import com.example.tasktimer.ui.theme.SurfaceDark
+import com.example.tasktimer.ui.theme.TextGray
+import com.example.tasktimer.ui.theme.TextWhite
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SearchContent(
     viewModel: SearchViewModel = viewModel()
@@ -59,13 +95,14 @@ fun SearchContent(
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            // Categorias selecionadas
+            // Categorias selecionadas com FlowRow
             if (selectedCategoryIds.isNotEmpty()) {
-                Row(
+                FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     selectedCategoryIds.forEach { categoryId ->
                         val category = categories.find { it.id == categoryId }
@@ -454,47 +491,3 @@ fun SearchTaskItem(
     }
 }
 
-@Composable
-fun SearchBottomBar(
-    onHomeClick: () -> Unit,
-    onCalendarClick: () -> Unit
-) {
-    NavigationBar(
-        containerColor = SurfaceDark,
-        contentColor = TextGray
-    ) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Check, contentDescription = null) },
-            label = { Text("Tasks") },
-            selected = false,
-            onClick = onHomeClick,
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-            label = { Text("Calendário") },
-            selected = false,
-            onClick = onCalendarClick,
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Search, contentDescription = null) },
-            label = { Text("Pesquisar") },
-            selected = true,
-            onClick = {},
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = TextWhite,
-                selectedTextColor = TextWhite,
-                indicatorColor = SelectedNav,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-    }
-}
