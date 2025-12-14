@@ -1,5 +1,6 @@
 package com.example.tasktimer.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,9 +27,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.theme.*
 import com.example.tasktimer.ui.components.AddTaskDialog
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -41,148 +44,297 @@ fun HomeScreen(
     val completedTasks by viewModel.completedTasks.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val filterTitle by viewModel.filterTitle.collectAsState()
     var showAddTaskDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
 
-    // Estado para rolagem da tela inteira
     val scrollState = rememberScrollState()
-
     var isOverdueExpanded by remember { mutableStateOf(true) }
     var isTodayExpanded by remember { mutableStateOf(true) }
     var isCompletedExpanded by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = DarkBackground,
-        topBar = { HomeTopBar() },
-        bottomBar = { 
-            HomeBottomBar(
-                onCalendarClick = onNavigateToCalendar,
-                onSearchClick = onNavigateToSearch
-            ) 
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddTaskDialog = true },
-                containerColor = PrimaryBlue,
-                contentColor = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.size(64.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
-            }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            DrawerContent(
+                categories = categories,
+                selectedFilter = selectedFilter,
+                onFilterSelected = { filter ->
+                    viewModel.selectFilter(filter)
+                    scope.launch { drawerState.close() }
+                }
+            )
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(scrollState)
-        ) {
-            // Vencidas
-            if (overdueTasks.isNotEmpty()) {
-                TaskSection(
-                    title = "Vencidas",
-                    taskCount = overdueTasks.size,
-                    tasks = overdueTasks,
-                    isExpanded = isOverdueExpanded,
-                    onToggleExpand = { isOverdueExpanded = !isOverdueExpanded },
-                    onTaskClick = { task -> taskToEdit = task },
-                    onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            
-            // Hoje
-            if (todayTasks.isNotEmpty()) {
-                TaskSection(
-                    title = "Hoje",
-                    taskCount = todayTasks.size,
-                    tasks = todayTasks,
-                    isExpanded = isTodayExpanded,
-                    onToggleExpand = { isTodayExpanded = !isTodayExpanded },
-                    onTaskClick = { task -> taskToEdit = task },
-                    onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            
-            // Concluídas
-            if (completedTasks.isNotEmpty()) {
-                TaskSection(
-                    title = "Concluídas",
-                    taskCount = completedTasks.size,
-                    tasks = completedTasks,
-                    isExpanded = isCompletedExpanded,
-                    onToggleExpand = { isCompletedExpanded = !isCompletedExpanded },
-                    onTaskClick = { task -> taskToEdit = task },
-                    onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
-                )
-            }
-            
-            // Mensagem quando não há tasks
-            if (overdueTasks.isEmpty() && todayTasks.isEmpty() && completedTasks.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center
+    ) {
+        Scaffold(
+            containerColor = DarkBackground,
+            topBar = { 
+                HomeTopBar(
+                    title = filterTitle,
+                    onMenuClick = { 
+                        scope.launch { drawerState.open() } 
+                    }
+                ) 
+            },
+            bottomBar = { 
+                HomeBottomBar(
+                    onCalendarClick = onNavigateToCalendar,
+                    onSearchClick = onNavigateToSearch
+                ) 
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showAddTaskDialog = true },
+                    containerColor = PrimaryBlue,
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.size(64.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
+                }
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(scrollState)
+            ) {
+                // Vencidas
+                if (overdueTasks.isNotEmpty()) {
+                    TaskSection(
+                        title = "Vencidas",
+                        taskCount = overdueTasks.size,
+                        tasks = overdueTasks,
+                        isExpanded = isOverdueExpanded,
+                        onToggleExpand = { isOverdueExpanded = !isOverdueExpanded },
+                        onTaskClick = { task -> taskToEdit = task },
+                        onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                // Hoje
+                if (todayTasks.isNotEmpty()) {
+                    TaskSection(
+                        title = "Hoje",
+                        taskCount = todayTasks.size,
+                        tasks = todayTasks,
+                        isExpanded = isTodayExpanded,
+                        onToggleExpand = { isTodayExpanded = !isTodayExpanded },
+                        onTaskClick = { task -> taskToEdit = task },
+                        onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                // Concluídas
+                if (completedTasks.isNotEmpty()) {
+                    TaskSection(
+                        title = "Concluídas",
+                        taskCount = completedTasks.size,
+                        tasks = completedTasks,
+                        isExpanded = isCompletedExpanded,
+                        onToggleExpand = { isCompletedExpanded = !isCompletedExpanded },
+                        onTaskClick = { task -> taskToEdit = task },
+                        onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                    )
+                }
+                
+                // Mensagem quando não há tasks
+                if (overdueTasks.isEmpty() && todayTasks.isEmpty() && completedTasks.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "🎉",
-                            fontSize = 48.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Nenhuma tarefa para hoje",
-                            color = TextGray,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Clique no + para adicionar uma nova tarefa",
-                            color = TextGray.copy(alpha = 0.7f),
-                            fontSize = 14.sp
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "🎉",
+                                fontSize = 48.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Nenhuma tarefa para hoje",
+                                color = TextGray,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Clique no + para adicionar uma nova tarefa",
+                                color = TextGray.copy(alpha = 0.7f),
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }
         }
-    }
 
-    // Dialog de adicionar/editar tarefa
-    if (showAddTaskDialog || taskToEdit != null) {
-        AddTaskDialog(
-            onDismiss = { 
-                showAddTaskDialog = false
-                taskToEdit = null
-            },
-            onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
-                if (taskToEdit != null) {
-                    viewModel.updateTask(
-                        taskToEdit!!.id,
-                        title,
-                        description,
-                        dateTime,
-                        categoryId,
-                        subtasks,
-                        pomodoroConfig
-                    )
-                } else {
-                    viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-                }
-                showAddTaskDialog = false
-                taskToEdit = null
-            },
-            categories = categories,
-            pomodoroPresets = pomodoroPresets,
-            existingTask = taskToEdit
-        )
+        // Dialog de adicionar/editar tarefa
+        if (showAddTaskDialog || taskToEdit != null) {
+            AddTaskDialog(
+                onDismiss = { 
+                    showAddTaskDialog = false
+                    taskToEdit = null
+                },
+                onSave = { title, description, dateTime, categoryId, subtasks, pomodoroConfig ->
+                    if (taskToEdit != null) {
+                        viewModel.updateTask(
+                            taskToEdit!!.id,
+                            title,
+                            description,
+                            dateTime,
+                            categoryId,
+                            subtasks,
+                            pomodoroConfig
+                        )
+                    } else {
+                        viewModel.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+                    }
+                    showAddTaskDialog = false
+                    taskToEdit = null
+                },
+                categories = categories,
+                pomodoroPresets = pomodoroPresets,
+                existingTask = taskToEdit
+            )
+        }
+    }
+}
+
+@Composable
+fun DrawerContent(
+    categories: List<Category>,
+    selectedFilter: TaskFilter,
+    onFilterSelected: (TaskFilter) -> Unit
+) {
+    ModalDrawerSheet(
+        drawerContainerColor = SurfaceDark
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // Header do Drawer
+            Text(
+                text = "TaskTimer",
+                color = TextWhite,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            Divider(color = TextGray.copy(alpha = 0.2f))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Todas as Tasks
+            DrawerItem(
+                title = "Todas",
+                icon = "📋",
+                isSelected = selectedFilter is TaskFilter.All,
+                onClick = { onFilterSelected(TaskFilter.All) }
+            )
+
+            // Tasks de Hoje
+            DrawerItem(
+                title = "Hoje",
+                icon = "📅",
+                isSelected = selectedFilter is TaskFilter.Today,
+                onClick = { onFilterSelected(TaskFilter.Today) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Categorias
+            Text(
+                text = "Categorias",
+                color = TextGray,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            categories.forEach { category ->
+                DrawerItem(
+                    title = category.name,
+                    icon = getCategoryIcon(category.name),
+                    color = category.color,
+                    isSelected = selectedFilter is TaskFilter.Category && 
+                                 (selectedFilter as TaskFilter.Category).categoryId == category.id,
+                    onClick = { onFilterSelected(TaskFilter.Category(category.id)) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DrawerItem(
+    title: String,
+    icon: String,
+    color: Color? = null,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        color = if (isSelected) PrimaryBlue.copy(alpha = 0.2f) else Color.Transparent,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable(onClick = onClick)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = icon,
+                fontSize = 24.sp
+            )
+            
+            Text(
+                text = title,
+                color = if (isSelected) PrimaryBlue else TextWhite,
+                fontSize = 16.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.weight(1f)
+            )
+            
+            if (color != null) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(color, CircleShape)
+                )
+            }
+        }
+    }
+}
+
+fun getCategoryIcon(categoryName: String): String {
+    return when (categoryName.lowercase()) {
+        "trabalho" -> "💼"
+        "desenvolvimento" -> "💻"
+        "pessoal" -> "🏠"
+        "estudos" -> "📚"
+        "saúde" -> "💊"
+        else -> "📌"
     }
 }
 
@@ -260,7 +412,10 @@ fun TaskSection(
 }
 
 @Composable
-fun HomeTopBar() {
+fun HomeTopBar(
+    title: String,
+    onMenuClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,15 +424,17 @@ fun HomeTopBar() {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Menu",
-                tint = TextWhite,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = TextWhite,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Hoje",
+                text = title,
                 color = TextWhite,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold

@@ -28,6 +28,12 @@ class HomeViewModel : ViewModel() {
     private val _pomodoroPresets = MutableStateFlow<List<Pair<String, PomodoroConfig>>>(emptyList())
     val pomodoroPresets: StateFlow<List<Pair<String, PomodoroConfig>>> = _pomodoroPresets.asStateFlow()
 
+    private val _selectedFilter = MutableStateFlow<TaskFilter>(TaskFilter.All)
+    val selectedFilter: StateFlow<TaskFilter> = _selectedFilter.asStateFlow()
+    
+    private val _filterTitle = MutableStateFlow("Todas")
+    val filterTitle: StateFlow<String> = _filterTitle.asStateFlow()
+
     init {
         loadData()
     }
@@ -38,14 +44,53 @@ class HomeViewModel : ViewModel() {
         updateTaskLists()
     }
 
+    fun selectFilter(filter: TaskFilter) {
+        _selectedFilter.value = filter
+        _filterTitle.value = when (filter) {
+            is TaskFilter.All -> "Todas"
+            is TaskFilter.Today -> "Hoje"
+            is TaskFilter.Category -> {
+                MockTaskRepository.getCategories().find { it.id == filter.categoryId }?.name ?: "Categoria"
+            }
+        }
+        updateTaskLists()
+    }
+
     private fun updateTaskLists() {
-        _overdueTasks.value = MockTaskRepository.getOverdueTasks()
+        val filter = _selectedFilter.value
+        
+        val filteredTasks = when (filter) {
+            is TaskFilter.All -> MockTaskRepository.getAllTasks()
+            is TaskFilter.Today -> {
+                val today = java.time.LocalDate.now()
+                MockTaskRepository.getAllTasks().filter { 
+                    it.dateTime.toLocalDate() == today 
+                }
+            }
+            is TaskFilter.Category -> {
+                MockTaskRepository.getAllTasks().filter { 
+                    it.categoryId == filter.categoryId 
+                }
+            }
+        }
+
+        _overdueTasks.value = filteredTasks
+            .filter { it.isOverdue && !it.isCompleted }
             .sortedBy { it.dateTime }
 
-        _todayTasks.value = MockTaskRepository.getTodayTasks()
+        _todayTasks.value = filteredTasks
+            .filter { 
+                val today = java.time.LocalDate.now()
+                it.dateTime.toLocalDate() == today && !it.isCompleted 
+            }
             .sortedBy { it.dateTime }
 
-        _completedTasks.value = MockTaskRepository.getCompletedTasksToday()
+        _completedTasks.value = filteredTasks
+            .filter {
+                val today = java.time.LocalDate.now()
+                it.isCompleted &&
+                it.completedAt?.toLocalDate() == today
+            }
             .sortedByDescending { it.completedAt }
     }
 
@@ -82,4 +127,10 @@ class HomeViewModel : ViewModel() {
         MockTaskRepository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
         updateTaskLists()
     }
+}
+
+sealed class TaskFilter {
+    object All : TaskFilter()
+    object Today : TaskFilter()
+    data class Category(val categoryId: Int) : TaskFilter()
 }
