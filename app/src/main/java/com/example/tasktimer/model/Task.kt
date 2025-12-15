@@ -11,6 +11,7 @@ data class Task(
     val isCompleted: Boolean = false,
     val categoryId: String? = null,
     val pomodoroConfig: PomodoroConfig? = null,
+    val pomodoroSessions: List<PomodoroSession> = emptyList(),
     val subtasks: List<Subtask> = emptyList(),
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val completedAt: LocalDateTime? = null
@@ -40,6 +41,7 @@ data class Task(
             "isCompleted" to isCompleted,
             "categoryId" to categoryId,
             "pomodoroConfig" to pomodoroConfig?.toMap(),
+            "pomodoroSessions" to pomodoroSessions.map { it.toMap() },
             "subtasks" to subtasks.map { it.toMap() },
             "createdAt" to createdAt.toEpochSecond(ZoneOffset.UTC),
             "completedAt" to completedAt?.toEpochSecond(ZoneOffset.UTC)
@@ -60,6 +62,9 @@ data class Task(
                 pomodoroConfig = (map["pomodoroConfig"] as? Map<String, Any?>)?.let {
                     PomodoroConfig.fromMap(it)
                 },
+                pomodoroSessions = (map["pomodoroSessions"] as? List<Map<String, Any?>>)?.map { m ->
+                    PomodoroSession.fromMap(m)
+                } ?: emptyList(),
                 subtasks = (map["subtasks"] as? List<Map<String, Any?>>)?.mapIndexed { index, m ->
                     Subtask.fromMap(index.toString(), m)
                 } ?: emptyList(),

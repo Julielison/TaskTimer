@@ -3,6 +3,7 @@ package com.example.tasktimer.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tasktimer.data.FirestoreRepository
+import com.example.tasktimer.data.SampleDataInserter
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
@@ -15,6 +16,7 @@ import java.time.LocalDateTime
 
 class HomeViewModel : ViewModel() {
     private val repository = FirestoreRepository()
+    private val sampleDataInserter = SampleDataInserter(repository)
 
     // Adicione esta variável para armazenar todas as tasks
     private var allTasks = listOf<Task>()
@@ -170,6 +172,17 @@ class HomeViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             repository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+        }
+    }
+
+    fun insertSampleData() {
+        viewModelScope.launch {
+            try {
+                sampleDataInserter.insertSampleData()
+            } catch (e: Exception) {
+                // Handle error
+                println("Erro ao inserir dados de exemplo: ${e.message}")
+            }
         }
     }
 }

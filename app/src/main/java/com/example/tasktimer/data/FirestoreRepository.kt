@@ -44,6 +44,36 @@ class FirestoreRepository {
             .mapNotNull { doc -> doc.data?.let { Task.fromMap(doc.id, it) } }
     }
 
+    suspend fun getTasksByDateRange(startDate: LocalDate, endDate: LocalDate): List<Task> {
+        val start = startDate.atStartOfDay().toEpochSecond(ZoneOffset.UTC)
+        val end = endDate.plusDays(1).atStartOfDay().toEpochSecond(ZoneOffset.UTC)
+        
+        return tasksCollection
+            .whereGreaterThanOrEqualTo("dateTime", start)
+            .whereLessThan("dateTime", end)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { doc -> doc.data?.let { Task.fromMap(doc.id, it) } }
+    }
+
+    suspend fun getCompletedTasksByDateRange(startDate: LocalDate, endDate: LocalDate): List<Task> {
+        val start = startDate.atStartOfDay().toEpochSecond(ZoneOffset.UTC)
+        val end = endDate.plusDays(1).atStartOfDay().toEpochSecond(ZoneOffset.UTC)
+        
+        // Buscar todas as tasks e filtrar em memória para evitar necessidade de índice composto
+        return tasksCollection
+            .whereEqualTo("isCompleted", true)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { doc -> doc.data?.let { Task.fromMap(doc.id, it) } }
+            .filter { task ->
+                val completedAt = task.completedAt?.toEpochSecond(ZoneOffset.UTC) ?: return@filter false
+                completedAt >= start && completedAt < end
+            }
+    }
+
     suspend fun addTask(
         title: String,
         description: String?,
@@ -60,6 +90,11 @@ class FirestoreRepository {
             subtasks = subtasks,
             pomodoroConfig = pomodoroConfig
         )
+        val docRef = tasksCollection.add(task.toMap()).await()
+        return docRef.id
+    }
+
+    suspend fun addTaskWithSessions(task: Task): String {
         val docRef = tasksCollection.add(task.toMap()).await()
         return docRef.id
     }
@@ -112,6 +147,19 @@ class FirestoreRepository {
                 trySend(categories)
             }
         awaitClose { listener.remove() }
+    }
+
+    suspend fun getCategoriesMap(): Map<String, String> {
+        return categoriesCollection
+            .get()
+            .await()
+            .documents
+            .mapNotNull { doc ->
+                doc.data?.let { data ->
+                    doc.id to (data["name"] as? String ?: "Sem nome")
+                }
+            }
+            .toMap()
     }
 
     // Adicione a palavra-chave "suspend"

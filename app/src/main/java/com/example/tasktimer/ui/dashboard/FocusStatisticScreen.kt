@@ -49,10 +49,10 @@ fun FocusStatisticsScreen(
         else -> {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()              // ocupa toda a tela
-                    .padding(16.dp),            // padding externo
-                verticalArrangement = Arrangement.Top, // conteúdo começa do topo
-                horizontalAlignment = Alignment.Start  // alinhado à esquerda
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.Start
             ) {
                 Text(
                     text = "Resumo de Foco",
@@ -76,6 +76,7 @@ fun FocusStatisticsScreen(
 
                 DetailsSection(
                     selectedPeriod = state.selectedPeriod,
+                    stats = state.stats.firstOrNull(),
                     onPeriodChange = viewModel::onPeriodChange
                 )
             }
