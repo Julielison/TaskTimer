@@ -96,7 +96,10 @@ fun FocusDonutWithLegend(
         Color(0xFF8A6CFF),
         Color(0xFFFF6C6C),
         Color(0xFF6CFF8A),
-        Color(0xFF6CCFFF)
+        Color(0xFF6CCFFF),
+        Color(0xFFFFB86C),
+        Color(0xFFFF6CFF),
+        Color(0xFFCCCCCC)
     )
 
     Column(

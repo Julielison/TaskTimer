@@ -66,17 +66,31 @@ class FirebaseFocusStatsRepository(
             .sumOf { it.durationMinutes }
         
         // Foco por categoria (baseado em sessões)
-        val focusByCategory = completedTasks
+        val focusByCategory = mutableMapOf<String, Int>()
+        
+        // Tasks COM categoria
+        completedTasks
             .filter { it.categoryId != null }
             .groupBy { it.categoryId!! }
-            .mapValues { (_, tasks) ->
-                tasks.flatMap { it.pomodoroSessions }
+            .forEach { (categoryId, tasks) ->
+                val minutes = tasks.flatMap { it.pomodoroSessions }
                     .filter { it.completed && it.type == PomodoroType.WORK }
                     .sumOf { it.durationMinutes }
+                
+                val categoryName = categories[categoryId] ?: "Sem nome"
+                focusByCategory[categoryName] = minutes
             }
-            .mapKeys { (categoryId, _) ->
-                categories[categoryId] ?: "Sem categoria"
-            }
+        
+        // Tasks SEM categoria
+        val uncategorizedMinutes = completedTasks
+            .filter { it.categoryId == null }
+            .flatMap { it.pomodoroSessions }
+            .filter { it.completed && it.type == PomodoroType.WORK }
+            .sumOf { it.durationMinutes }
+        
+        if (uncategorizedMinutes > 0) {
+            focusByCategory["Sem categoria"] = uncategorizedMinutes
+        }
 
         return FocusStats(
             totalFocusMinutes = totalFocusMinutes,

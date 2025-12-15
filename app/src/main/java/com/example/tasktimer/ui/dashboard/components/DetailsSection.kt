@@ -18,12 +18,5 @@ fun DetailsSection(
     // Usar dados reais das categorias do Firebase
     val focusData = stats?.focusByCategory ?: emptyMap()
     
-    if (focusData.isNotEmpty()) {
-        FocusDonutWithLegend(data = focusData)
-    } else {
-        // Exibir mensagem quando não há dados
-        FocusDonutWithLegend(
-            data = mapOf("Nenhum dado" to 0)
-        )
-    }
+    FocusDonutWithLegend(data = focusData)
 }
