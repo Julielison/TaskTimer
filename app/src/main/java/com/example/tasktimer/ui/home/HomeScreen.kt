@@ -105,7 +105,8 @@ fun HomeContent(
                 },
                 onCategoryAdded = {
                     viewModel.refreshCategories()
-                }
+                },
+                viewModel = viewModel // Certifique-se de que o viewModel está sendo passado
             )
         }
     ) {

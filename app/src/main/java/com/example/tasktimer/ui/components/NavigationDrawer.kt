@@ -191,6 +191,7 @@ fun DrawerContent(
                 categoryToEdit = null
             },
             onConfirm = { name, color ->
+                android.util.Log.d("NavigationDrawer", "Atualizando categoria: $name")
                 viewModel?.updateCategory(categoryToEdit!!.id, name, color)
                 showEditCategoryDialog = false
                 categoryToEdit = null
@@ -221,6 +222,7 @@ fun DrawerContent(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        android.util.Log.d("NavigationDrawer", "Deletando categoria: ${categoryToDelete!!.name}")
                         viewModel?.deleteCategory(categoryToDelete!!.id)
                         showDeleteCategoryDialog = false
                         categoryToDelete = null

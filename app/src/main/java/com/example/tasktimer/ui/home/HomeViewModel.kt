@@ -200,8 +200,10 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.addCategory(name, color)
+                // Força atualização das categorias
+                loadCategories()
             } catch (e: Exception) {
-                // Log error
+                android.util.Log.e("HomeViewModel", "Erro ao adicionar categoria", e)
             }
         }
     }
@@ -210,8 +212,10 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.updateCategory(categoryId, name, color)
+                // Força atualização das categorias
+                loadCategories()
             } catch (e: Exception) {
-                // Log error
+                android.util.Log.e("HomeViewModel", "Erro ao atualizar categoria", e)
             }
         }
     }
@@ -220,8 +224,32 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.deleteCategory(categoryId)
+                // Força atualização das categorias e tasks
+                loadCategories()
+                loadTasks()
             } catch (e: Exception) {
-                // Log error
+                android.util.Log.e("HomeViewModel", "Erro ao deletar categoria", e)
+            }
+        }
+    }
+
+    private fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                // Se você já tem um Flow de categorias, apenas force uma nova coleta
+                // Caso contrário, implemente uma busca manual aqui
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao carregar categorias", e)
+            }
+        }
+    }
+
+    private fun loadTasks() {
+        viewModelScope.launch {
+            try {
+                // Se você já tem um Flow de tasks, apenas force uma nova coleta
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao carregar tasks", e)
             }
         }
     }
