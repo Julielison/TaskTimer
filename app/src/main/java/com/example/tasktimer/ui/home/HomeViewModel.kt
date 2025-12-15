@@ -195,6 +195,36 @@ class HomeViewModel : ViewModel() {
             }
         }
     }
+
+    fun addCategory(name: String, color: androidx.compose.ui.graphics.Color) {
+        viewModelScope.launch {
+            try {
+                repository.addCategory(name, color)
+            } catch (e: Exception) {
+                // Log error
+            }
+        }
+    }
+
+    fun updateCategory(categoryId: String, name: String, color: androidx.compose.ui.graphics.Color) {
+        viewModelScope.launch {
+            try {
+                repository.updateCategory(categoryId, name, color)
+            } catch (e: Exception) {
+                // Log error
+            }
+        }
+    }
+
+    fun deleteCategory(categoryId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteCategory(categoryId)
+            } catch (e: Exception) {
+                // Log error
+            }
+        }
+    }
 }
 
 sealed class TaskFilter {
