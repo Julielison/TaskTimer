@@ -25,6 +25,12 @@ class HomeViewModel : ViewModel() {
     private val _todayTasks = MutableStateFlow<List<Task>>(emptyList())
     val todayTasks: StateFlow<List<Task>> = _todayTasks.asStateFlow()
 
+    private val _tomorrowTasks = MutableStateFlow<List<Task>>(emptyList())
+    val tomorrowTasks: StateFlow<List<Task>> = _tomorrowTasks.asStateFlow()
+
+    private val _laterTasks = MutableStateFlow<List<Task>>(emptyList())
+    val laterTasks: StateFlow<List<Task>> = _laterTasks.asStateFlow()
+
     private val _completedTasks = MutableStateFlow<List<Task>>(emptyList())
     val completedTasks: StateFlow<List<Task>> = _completedTasks.asStateFlow()
 
@@ -101,20 +107,33 @@ class HomeViewModel : ViewModel() {
             }
         }
 
+        val today = java.time.LocalDate.now()
+        val tomorrow = today.plusDays(1)
+
         _overdueTasks.value = filteredTasks
             .filter { it.isOverdue && !it.isCompleted }
             .sortedBy { it.dateTime }
 
         _todayTasks.value = filteredTasks
             .filter { 
-                val today = java.time.LocalDate.now()
                 it.dateTime.toLocalDate() == today && !it.isCompleted 
+            }
+            .sortedBy { it.dateTime }
+
+        _tomorrowTasks.value = filteredTasks
+            .filter { 
+                it.dateTime.toLocalDate() == tomorrow && !it.isCompleted 
+            }
+            .sortedBy { it.dateTime }
+
+        _laterTasks.value = filteredTasks
+            .filter { 
+                it.dateTime.toLocalDate().isAfter(tomorrow) && !it.isCompleted 
             }
             .sortedBy { it.dateTime }
 
         _completedTasks.value = filteredTasks
             .filter {
-                val today = java.time.LocalDate.now()
                 it.isCompleted &&
                 it.completedAt?.toLocalDate() == today
             }
