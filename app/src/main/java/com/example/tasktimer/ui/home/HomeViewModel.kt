@@ -1,7 +1,8 @@
 package com.example.tasktimer.ui.home
 
 import androidx.lifecycle.ViewModel
-import com.example.tasktimer.data.MockTaskRepository
+import androidx.lifecycle.viewModelScope
+import com.example.tasktimer.data.FirestoreRepository
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
@@ -9,9 +10,11 @@ import com.example.tasktimer.model.Subtask
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 class HomeViewModel : ViewModel() {
+    private val repository = FirestoreRepository()
 
     private val _overdueTasks = MutableStateFlow<List<Task>>(emptyList())
     val overdueTasks: StateFlow<List<Task>> = _overdueTasks.asStateFlow()
@@ -39,9 +42,19 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun loadData() {
-        _categories.value = MockTaskRepository.getCategories()
-        _pomodoroPresets.value = MockTaskRepository.getPomodoroPresets()
-        updateTaskLists()
+        viewModelScope.launch {
+            repository.getCategoriesFlow().collect { categories ->
+                _categories.value = categories
+            }
+        }
+        
+        viewModelScope.launch {
+            repository.getTasksFlow().collect { tasks ->
+                updateTaskLists(tasks)
+            }
+        }
+        
+        _pomodoroPresets.value = repository.getPomodoroPresets()
     }
 
     fun selectFilter(filter: TaskFilter) {
@@ -50,31 +63,30 @@ class HomeViewModel : ViewModel() {
             is TaskFilter.All -> "Todas"
             is TaskFilter.Today -> "Hoje"
             is TaskFilter.Category -> {
-                MockTaskRepository.getCategories().find { it.id == filter.categoryId }?.name ?: "Categoria"
+                _categories.value.find { it.id == filter.categoryId }?.name ?: "Categoria"
             }
         }
-        updateTaskLists()
     }
     
     fun refreshCategories() {
-        _categories.value = MockTaskRepository.getCategories()
+        viewModelScope.launch {
+            repository.getCategoriesFlow().collect { categories ->
+                _categories.value = categories
+            }
+        }
     }
 
-    private fun updateTaskLists() {
+    private fun updateTaskLists(allTasks: List<Task> = emptyList()) {
         val filter = _selectedFilter.value
         
         val filteredTasks = when (filter) {
-            is TaskFilter.All -> MockTaskRepository.getAllTasks()
+            is TaskFilter.All -> allTasks
             is TaskFilter.Today -> {
                 val today = java.time.LocalDate.now()
-                MockTaskRepository.getAllTasks().filter { 
-                    it.dateTime.toLocalDate() == today 
-                }
+                allTasks.filter { it.dateTime.toLocalDate() == today }
             }
             is TaskFilter.Category -> {
-                MockTaskRepository.getAllTasks().filter { 
-                    it.categoryId == filter.categoryId 
-                }
+                allTasks.filter { it.categoryId == filter.categoryId }
             }
         }
 
@@ -98,39 +110,42 @@ class HomeViewModel : ViewModel() {
             .sortedByDescending { it.completedAt }
     }
 
-    fun toggleTaskCompletion(taskId: Int) {
-        MockTaskRepository.toggleTaskCompletion(taskId)
-        updateTaskLists()
+    fun toggleTaskCompletion(taskId: String) {
+        viewModelScope.launch {
+            repository.toggleTaskCompletion(taskId)
+        }
     }
 
     fun updateTask(
-        taskId: Int,
+        taskId: String,
         title: String,
         description: String?,
         dateTime: LocalDateTime,
-        categoryId: Int?,
+        categoryId: String?,
         subtasks: List<Subtask>,
         pomodoroConfig: PomodoroConfig?
     ) {
-        MockTaskRepository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        updateTaskLists()
+        viewModelScope.launch {
+            repository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+        }
     }
 
     fun addTask(
         title: String,
         description: String?,
         dateTime: LocalDateTime,
-        categoryId: Int?,
+        categoryId: String?,
         subtasks: List<Subtask>,
         pomodoroConfig: PomodoroConfig?
     ) {
-        MockTaskRepository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        updateTaskLists()
+        viewModelScope.launch {
+            repository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+        }
     }
 }
 
 sealed class TaskFilter {
     object All : TaskFilter()
     object Today : TaskFilter()
-    data class Category(val categoryId: Int) : TaskFilter()
+    data class Category(val categoryId: String) : TaskFilter()
 }

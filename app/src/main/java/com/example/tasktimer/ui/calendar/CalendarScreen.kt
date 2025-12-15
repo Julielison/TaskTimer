@@ -262,7 +262,7 @@ fun TasksList(
     tasks: List<Task>,
     selectedDate: LocalDate,
     onTaskClick: (Task) -> Unit,
-    onTaskToggle: (Int) -> Unit
+    onTaskToggle: (String) -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SurfaceDark),

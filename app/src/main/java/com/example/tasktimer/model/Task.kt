@@ -1,14 +1,15 @@
 package com.example.tasktimer.model
 
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 data class Task(
-    val id: Int,
-    val title: String,
+    val id: String = "",
+    val title: String = "",
     val description: String? = null,
-    val dateTime: LocalDateTime,
+    val dateTime: LocalDateTime = LocalDateTime.now(),
     val isCompleted: Boolean = false,
-    val categoryId: Int? = null,
+    val categoryId: String? = null,
     val pomodoroConfig: PomodoroConfig? = null,
     val subtasks: List<Subtask> = emptyList(),
     val createdAt: LocalDateTime = LocalDateTime.now(),
@@ -30,4 +31,45 @@ data class Task(
 
     val formattedDate: String
         get() = String.format("%02d/%02d/%04d", dateTime.dayOfMonth, dateTime.monthValue, dateTime.year)
+
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "title" to title,
+            "description" to description,
+            "dateTime" to dateTime.toEpochSecond(ZoneOffset.UTC),
+            "isCompleted" to isCompleted,
+            "categoryId" to categoryId,
+            "pomodoroConfig" to pomodoroConfig?.toMap(),
+            "subtasks" to subtasks.map { it.toMap() },
+            "createdAt" to createdAt.toEpochSecond(ZoneOffset.UTC),
+            "completedAt" to completedAt?.toEpochSecond(ZoneOffset.UTC)
+        )
+    }
+
+    companion object {
+        fun fromMap(id: String, map: Map<String, Any?>): Task {
+            return Task(
+                id = id,
+                title = map["title"] as? String ?: "",
+                description = map["description"] as? String,
+                dateTime = (map["dateTime"] as? Long)?.let { 
+                    LocalDateTime.ofEpochSecond(it, 0, ZoneOffset.UTC)
+                } ?: LocalDateTime.now(),
+                isCompleted = map["isCompleted"] as? Boolean ?: false,
+                categoryId = map["categoryId"] as? String,
+                pomodoroConfig = (map["pomodoroConfig"] as? Map<String, Any?>)?.let {
+                    PomodoroConfig.fromMap(it)
+                },
+                subtasks = (map["subtasks"] as? List<Map<String, Any?>>)?.mapIndexed { index, m ->
+                    Subtask.fromMap(index.toString(), m)
+                } ?: emptyList(),
+                createdAt = (map["createdAt"] as? Long)?.let {
+                    LocalDateTime.ofEpochSecond(it, 0, ZoneOffset.UTC)
+                } ?: LocalDateTime.now(),
+                completedAt = (map["completedAt"] as? Long)?.let {
+                    LocalDateTime.ofEpochSecond(it, 0, ZoneOffset.UTC)
+                }
+            )
+        }
+    }
 }

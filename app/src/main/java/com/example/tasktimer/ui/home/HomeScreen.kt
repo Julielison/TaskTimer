@@ -245,7 +245,7 @@ fun TaskSection(
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onTaskClick: (Task) -> Unit,
-    onTaskToggle: (Int) -> Unit
+    onTaskToggle: (String) -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SurfaceDark),

@@ -32,12 +32,13 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(
     onDismiss: () -> Unit,
-    onSave: (String, String?, LocalDateTime, Int?, List<Subtask>, PomodoroConfig?) -> Unit,
+    onSave: (String, String?, LocalDateTime, String?, List<Subtask>, PomodoroConfig?) -> Unit,
     categories: List<Category> = emptyList(),
     pomodoroPresets: List<Pair<String, PomodoroConfig>> = emptyList(),
     initialDate: LocalDate = LocalDate.now(),
@@ -47,7 +48,7 @@ fun AddTaskDialog(
     var description by remember { mutableStateOf(existingTask?.description ?: "") }
     var selectedDate by remember { mutableStateOf(existingTask?.dateTime?.toLocalDate() ?: initialDate) }
     var selectedTime by remember { mutableStateOf(existingTask?.dateTime?.toLocalTime() ?: LocalTime.now()) }
-    var selectedCategoryId by remember { mutableStateOf<Int?>(existingTask?.categoryId) }
+    var selectedCategoryId by remember { mutableStateOf<String?>(existingTask?.categoryId) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var titleError by remember { mutableStateOf(false) }
@@ -343,7 +344,7 @@ fun AddTaskDialog(
                                 onClick = {
                                     if (newSubtaskTitle.isNotBlank()) {
                                         subtasks = subtasks + SubtaskInput(
-                                            id = (subtasks.maxOfOrNull { it.id } ?: 0) + 1,
+                                            id = UUID.randomUUID().toString(),
                                             title = newSubtaskTitle.trim(),
                                             isCompleted = false
                                         )
@@ -573,7 +574,7 @@ fun AddTaskDialog(
                                         val finalSubtasks = subtasks.mapIndexed { index, input ->
                                             Subtask(
                                                 id = input.id,
-                                                taskId = 0,
+                                                taskId = "",
                                                 title = input.title,
                                                 isCompleted = input.isCompleted,
                                                 order = index
@@ -703,7 +704,7 @@ private fun PomodoroConfigField(
 }
 
 private data class SubtaskInput(
-    val id: Int,
+    val id: String,
     val title: String,
     val isCompleted: Boolean = false
 )

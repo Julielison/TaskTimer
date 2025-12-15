@@ -12,10 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.tasktimer.data.MockTaskRepository
+import com.example.tasktimer.data.FirestoreRepository
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.ui.components.drawer.AddCategoryDialog
 import com.example.tasktimer.ui.components.drawer.DrawerFooter
@@ -25,6 +26,7 @@ import com.example.tasktimer.ui.components.drawer.DrawerMenuItems
 import com.example.tasktimer.ui.components.drawer.buildDrawerMenuItems
 import com.example.tasktimer.ui.home.TaskFilter
 import com.example.tasktimer.ui.theme.SurfaceDark
+import kotlinx.coroutines.launch
 
 @Composable
 fun DrawerContent(
@@ -33,6 +35,8 @@ fun DrawerContent(
     onFilterSelected: (TaskFilter) -> Unit,
     onCategoryAdded: () -> Unit = {}
 ) {
+    val repository = FirestoreRepository()
+    val scope = rememberCoroutineScope()
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     
@@ -73,9 +77,11 @@ fun DrawerContent(
         AddCategoryDialog(
             onDismiss = { showAddCategoryDialog = false },
             onConfirm = { name, color ->
-                MockTaskRepository.addCategory(name, color)
-                showAddCategoryDialog = false
-                onCategoryAdded()
+                scope.launch {
+                    repository.addCategory(name, color)
+                    showAddCategoryDialog = false
+                    onCategoryAdded()
+                }
             }
         )
     }

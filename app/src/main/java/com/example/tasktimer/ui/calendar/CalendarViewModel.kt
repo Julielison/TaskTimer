@@ -1,7 +1,8 @@
 package com.example.tasktimer.ui.calendar
 
 import androidx.lifecycle.ViewModel
-import com.example.tasktimer.data.MockTaskRepository
+import androidx.lifecycle.viewModelScope
+import com.example.tasktimer.data.FirestoreRepository
 import com.example.tasktimer.model.CalendarDay
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
@@ -10,6 +11,7 @@ import com.example.tasktimer.model.Task
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.TextStyle
@@ -17,6 +19,7 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 class CalendarViewModel : ViewModel() {
+    private val repository = FirestoreRepository()
 
     private val _calendarDays = MutableStateFlow<List<CalendarDay>>(emptyList())
     val calendarDays: StateFlow<List<CalendarDay>> = _calendarDays.asStateFlow()
@@ -42,11 +45,25 @@ class CalendarViewModel : ViewModel() {
         loadData()
         loadWeekDays(_currentWeekStart.value)
         selectDate(LocalDate.now())
+        observeTasks()
+    }
+
+    private fun observeTasks() {
+        viewModelScope.launch {
+            repository.getTasksFlow().collect {
+                loadWeekDays(_currentWeekStart.value)
+                loadTasksForDate(_selectedDate.value)
+            }
+        }
     }
 
     private fun loadData() {
-        _categories.value = MockTaskRepository.getCategories()
-        _pomodoroPresets.value = MockTaskRepository.getPomodoroPresets()
+        viewModelScope.launch {
+            repository.getCategoriesFlow().collect { categories ->
+                _categories.value = categories
+            }
+        }
+        _pomodoroPresets.value = repository.getPomodoroPresets()
     }
 
     private fun getWeekStart(date: LocalDate): LocalDate {
@@ -55,34 +72,35 @@ class CalendarViewModel : ViewModel() {
     }
 
     private fun loadWeekDays(weekStart: LocalDate) {
-        val today = LocalDate.now()
-        val days = mutableListOf<CalendarDay>()
-        
-        for (i in 0..6) {
-            val date = weekStart.plusDays(i.toLong())
-            val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
+        viewModelScope.launch {
+            val today = LocalDate.now()
+            val days = mutableListOf<CalendarDay>()
             
-            // Calcula estatísticas de tasks para o dia
-            val tasksForDay = MockTaskRepository.getTasksByDate(date)
-            val completedCount = tasksForDay.count { it.isCompleted }
-            val hasOverdue = tasksForDay.any { it.isOverdue }
-            
-            days.add(
-                CalendarDay(
-                    dayOfMonth = date.dayOfMonth,
-                    dayOfWeek = dayOfWeek.take(3).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
-                    isToday = date == today,
-                    isSelected = date == _selectedDate.value,
-                    fullDate = date,
-                    taskCount = tasksForDay.size,
-                    completedTaskCount = completedCount,
-                    hasOverdueTasks = hasOverdue
+            for (i in 0..6) {
+                val date = weekStart.plusDays(i.toLong())
+                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
+                
+                val tasksForDay = repository.getTasksByDate(date)
+                val completedCount = tasksForDay.count { it.isCompleted }
+                val hasOverdue = tasksForDay.any { it.isOverdue }
+                
+                days.add(
+                    CalendarDay(
+                        dayOfMonth = date.dayOfMonth,
+                        dayOfWeek = dayOfWeek.take(3).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+                        isToday = date == today,
+                        isSelected = date == _selectedDate.value,
+                        fullDate = date,
+                        taskCount = tasksForDay.size,
+                        completedTaskCount = completedCount,
+                        hasOverdueTasks = hasOverdue
+                    )
                 )
-            )
+            }
+            
+            _calendarDays.value = days
+            updateMonthYearText(weekStart)
         }
-        
-        _calendarDays.value = days
-        updateMonthYearText(weekStart)
     }
 
     private fun updateMonthYearText(weekStart: LocalDate) {
@@ -121,43 +139,42 @@ class CalendarViewModel : ViewModel() {
     }
 
     private fun loadTasksForDate(date: LocalDate) {
-        _tasksForSelectedDate.value = MockTaskRepository.getTasksByDate(date)
-            .sortedBy { it.dateTime }
+        viewModelScope.launch {
+            _tasksForSelectedDate.value = repository.getTasksByDate(date)
+                .sortedBy { it.dateTime }
+        }
     }
 
-    fun toggleTaskCompletion(taskId: Int) {
-        MockTaskRepository.toggleTaskCompletion(taskId)
-        loadTasksForDate(_selectedDate.value)
-        loadWeekDays(_currentWeekStart.value)
+    fun toggleTaskCompletion(taskId: String) {
+        viewModelScope.launch {
+            repository.toggleTaskCompletion(taskId)
+        }
     }
 
     fun addTask(
         title: String,
         description: String?,
         dateTime: LocalDateTime,
-        categoryId: Int?,
+        categoryId: String?,
         subtasks: List<Subtask>,
         pomodoroConfig: PomodoroConfig?
     ) {
-        MockTaskRepository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        
-        if (dateTime.toLocalDate() == _selectedDate.value) {
-            loadTasksForDate(_selectedDate.value)
+        viewModelScope.launch {
+            repository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
         }
-        loadWeekDays(_currentWeekStart.value)
     }
 
     fun updateTask(
-        taskId: Int,
+        taskId: String,
         title: String,
         description: String?,
         dateTime: LocalDateTime,
-        categoryId: Int?,
+        categoryId: String?,
         subtasks: List<Subtask>,
         pomodoroConfig: PomodoroConfig?
     ) {
-        MockTaskRepository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        loadTasksForDate(_selectedDate.value)
-        loadWeekDays(_currentWeekStart.value)
+        viewModelScope.launch {
+            repository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+        }
     }
 }

@@ -6,7 +6,29 @@ data class PomodoroConfig(
     val longBreakDurationMinutes: Int = 15,
     val pomodorosUntilLongBreak: Int = 4,
     val totalPomodoros: Int = 4
-)
+) {
+    fun toMap(): Map<String, Any> {
+        return mapOf(
+            "workDurationMinutes" to workDurationMinutes,
+            "breakDurationMinutes" to breakDurationMinutes,
+            "longBreakDurationMinutes" to longBreakDurationMinutes,
+            "pomodorosUntilLongBreak" to pomodorosUntilLongBreak,
+            "totalPomodoros" to totalPomodoros
+        )
+    }
+
+    companion object {
+        fun fromMap(map: Map<String, Any?>): PomodoroConfig {
+            return PomodoroConfig(
+                workDurationMinutes = (map["workDurationMinutes"] as? Long)?.toInt() ?: 25,
+                breakDurationMinutes = (map["breakDurationMinutes"] as? Long)?.toInt() ?: 5,
+                longBreakDurationMinutes = (map["longBreakDurationMinutes"] as? Long)?.toInt() ?: 15,
+                pomodorosUntilLongBreak = (map["pomodorosUntilLongBreak"] as? Long)?.toInt() ?: 4,
+                totalPomodoros = (map["totalPomodoros"] as? Long)?.toInt() ?: 4
+            )
+        }
+    }
+}
 
 data class PomodoroSession(
     val id: Int,
