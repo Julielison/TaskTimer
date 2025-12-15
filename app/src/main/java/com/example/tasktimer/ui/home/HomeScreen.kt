@@ -381,31 +381,6 @@ fun HomeTopBar(
                 )
             }
         }
-        
-        // Botão para inserir dados de exemplo
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Button(
-                onClick = onInsertSampleData,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryBlue,
-                    contentColor = Color.White
-                ),
-                modifier = Modifier.padding(4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DataUsage,
-                    contentDescription = "Inserir dados",
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Inserir Dados de Exemplo", fontSize = 14.sp)
-            }
-        }
     }
 }
 
