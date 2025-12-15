@@ -42,14 +42,14 @@ fun StatsGrid(stats: List<FocusStats>) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             StatCard(
-                title = "Today's Tasks",
+                title = "Tarefas de Hoje",
                 value = data.todayTasks.toString(),
                 modifier = Modifier.weight(1f)
             )
 
             StatCard(
-                title = "Today's Focus (h)",
-                value = formatMinutes(data.todayFocusMinutes),
+                title = "Foco Hoje (h)",
+                value = formatMinutesToHours(data.todayFocusMinutes),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -58,24 +58,23 @@ fun StatsGrid(stats: List<FocusStats>) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             StatCard(
-                title = "Total Tasks",
+                title = "Total de Tarefas",
                 value = data.totalTasks.toString(),
                 modifier = Modifier.weight(1f)
             )
 
             StatCard(
-                title = "Total Focus Duration",
-                value = formatMinutes(data.totalFocusMinutes),
+                title = "Duração Total de Foco",
+                value = formatMinutesToHours(data.totalFocusMinutes),
                 modifier = Modifier.weight(1f)
             )
         }
     }
 }
 
-private fun RowScope.formatMinutes(totalFocusMinutes: Int): String {
-    val hours = totalFocusMinutes / 60
-    val minutes = totalFocusMinutes % 60
-
+private fun formatMinutesToHours(totalMinutes: Int): String {
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
     return String.format("%02d:%02d", hours, minutes)
 }
 

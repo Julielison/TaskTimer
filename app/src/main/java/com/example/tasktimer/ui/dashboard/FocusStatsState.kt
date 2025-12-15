@@ -10,7 +10,8 @@ data class FocusStatsState(
 )
 
 enum class StatsPeriod(val label: String) {
-    DAY("Day"),
-    WEEK("Week"),
-    MONTH("Month")
+    TODAY("Hoje"),
+    WEEK("Semana"),
+    MONTH("Mês"),
+    YEAR("Ano")
 }

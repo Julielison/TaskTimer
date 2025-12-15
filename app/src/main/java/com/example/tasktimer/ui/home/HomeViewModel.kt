@@ -1,7 +1,9 @@
 package com.example.tasktimer.ui.home
 
 import androidx.lifecycle.ViewModel
-import com.example.tasktimer.data.MockTaskRepository
+import androidx.lifecycle.viewModelScope
+import com.example.tasktimer.data.FirestoreRepository
+import com.example.tasktimer.data.SampleDataInserter
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
@@ -9,15 +11,27 @@ import com.example.tasktimer.model.Subtask
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 class HomeViewModel : ViewModel() {
+    private val repository = FirestoreRepository()
+    private val sampleDataInserter = SampleDataInserter(repository)
+
+    // Adicione esta variável para armazenar todas as tasks
+    private var allTasks = listOf<Task>()
 
     private val _overdueTasks = MutableStateFlow<List<Task>>(emptyList())
     val overdueTasks: StateFlow<List<Task>> = _overdueTasks.asStateFlow()
 
     private val _todayTasks = MutableStateFlow<List<Task>>(emptyList())
     val todayTasks: StateFlow<List<Task>> = _todayTasks.asStateFlow()
+
+    private val _tomorrowTasks = MutableStateFlow<List<Task>>(emptyList())
+    val tomorrowTasks: StateFlow<List<Task>> = _tomorrowTasks.asStateFlow()
+
+    private val _laterTasks = MutableStateFlow<List<Task>>(emptyList())
+    val laterTasks: StateFlow<List<Task>> = _laterTasks.asStateFlow()
 
     private val _completedTasks = MutableStateFlow<List<Task>>(emptyList())
     val completedTasks: StateFlow<List<Task>> = _completedTasks.asStateFlow()
@@ -39,9 +53,27 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun loadData() {
-        _categories.value = MockTaskRepository.getCategories()
-        _pomodoroPresets.value = MockTaskRepository.getPomodoroPresets()
-        updateTaskLists()
+        viewModelScope.launch {
+            repository.getCategoriesFlow().collect { categories ->
+                _categories.value = categories
+            }
+        }
+        
+        viewModelScope.launch {
+            repository.getTasksFlow().collect { tasks ->
+                allTasks = tasks
+                updateTaskLists(tasks)
+            }
+        }
+        
+        // Adicione um listener para mudanças no filtro
+        viewModelScope.launch {
+            _selectedFilter.collect {
+                updateTaskLists(allTasks)
+            }
+        }
+        
+        _pomodoroPresets.value = repository.getPomodoroPresets()
     }
 
     fun selectFilter(filter: TaskFilter) {
@@ -50,29 +82,35 @@ class HomeViewModel : ViewModel() {
             is TaskFilter.All -> "Todas"
             is TaskFilter.Today -> "Hoje"
             is TaskFilter.Category -> {
-                MockTaskRepository.getCategories().find { it.id == filter.categoryId }?.name ?: "Categoria"
+                _categories.value.find { it.id == filter.categoryId }?.name ?: "Categoria"
             }
         }
-        updateTaskLists()
+    }
+    
+    fun refreshCategories() {
+        viewModelScope.launch {
+            repository.getCategoriesFlow().collect { categories ->
+                _categories.value = categories
+            }
+        }
     }
 
-    private fun updateTaskLists() {
+    private fun updateTaskLists(allTasks: List<Task> = emptyList()) {
         val filter = _selectedFilter.value
         
         val filteredTasks = when (filter) {
-            is TaskFilter.All -> MockTaskRepository.getAllTasks()
+            is TaskFilter.All -> allTasks
             is TaskFilter.Today -> {
                 val today = java.time.LocalDate.now()
-                MockTaskRepository.getAllTasks().filter { 
-                    it.dateTime.toLocalDate() == today 
-                }
+                allTasks.filter { it.dateTime.toLocalDate() == today }
             }
             is TaskFilter.Category -> {
-                MockTaskRepository.getAllTasks().filter { 
-                    it.categoryId == filter.categoryId 
-                }
+                allTasks.filter { it.categoryId == filter.categoryId }
             }
         }
+
+        val today = java.time.LocalDate.now()
+        val tomorrow = today.plusDays(1)
 
         _overdueTasks.value = filteredTasks
             .filter { it.isOverdue && !it.isCompleted }
@@ -80,53 +118,145 @@ class HomeViewModel : ViewModel() {
 
         _todayTasks.value = filteredTasks
             .filter { 
-                val today = java.time.LocalDate.now()
                 it.dateTime.toLocalDate() == today && !it.isCompleted 
+            }
+            .sortedBy { it.dateTime }
+
+        _tomorrowTasks.value = filteredTasks
+            .filter { 
+                it.dateTime.toLocalDate() == tomorrow && !it.isCompleted 
+            }
+            .sortedBy { it.dateTime }
+
+        _laterTasks.value = filteredTasks
+            .filter { 
+                it.dateTime.toLocalDate().isAfter(tomorrow) && !it.isCompleted 
             }
             .sortedBy { it.dateTime }
 
         _completedTasks.value = filteredTasks
             .filter {
-                val today = java.time.LocalDate.now()
                 it.isCompleted &&
                 it.completedAt?.toLocalDate() == today
             }
             .sortedByDescending { it.completedAt }
     }
 
-    fun toggleTaskCompletion(taskId: Int) {
-        MockTaskRepository.toggleTaskCompletion(taskId)
-        updateTaskLists()
+    fun toggleTaskCompletion(taskId: String) {
+        viewModelScope.launch {
+            repository.toggleTaskCompletion(taskId)
+        }
     }
 
     fun updateTask(
-        taskId: Int,
+        taskId: String,
         title: String,
         description: String?,
         dateTime: LocalDateTime,
-        categoryId: Int?,
+        categoryId: String?,
         subtasks: List<Subtask>,
         pomodoroConfig: PomodoroConfig?
     ) {
-        MockTaskRepository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        updateTaskLists()
+        viewModelScope.launch {
+            repository.updateTask(taskId, title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+        }
     }
 
     fun addTask(
         title: String,
         description: String?,
         dateTime: LocalDateTime,
-        categoryId: Int?,
+        categoryId: String?,
         subtasks: List<Subtask>,
         pomodoroConfig: PomodoroConfig?
     ) {
-        MockTaskRepository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
-        updateTaskLists()
+        viewModelScope.launch {
+            repository.addTask(title, description, dateTime, categoryId, subtasks, pomodoroConfig)
+        }
+    }
+
+    fun deleteTask(taskId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteTask(taskId)
+            } catch (e: Exception) {
+                println("Erro ao deletar task: ${e.message}")
+            }
+        }
+    }
+
+    fun insertSampleData() {
+        viewModelScope.launch {
+            try {
+                sampleDataInserter.insertSampleData()
+            } catch (e: Exception) {
+                // Handle error
+                println("Erro ao inserir dados de exemplo: ${e.message}")
+            }
+        }
+    }
+
+    fun addCategory(name: String, color: androidx.compose.ui.graphics.Color) {
+        viewModelScope.launch {
+            try {
+                repository.addCategory(name, color)
+                // Força atualização das categorias
+                loadCategories()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao adicionar categoria", e)
+            }
+        }
+    }
+
+    fun updateCategory(categoryId: String, name: String, color: androidx.compose.ui.graphics.Color) {
+        viewModelScope.launch {
+            try {
+                repository.updateCategory(categoryId, name, color)
+                // Força atualização das categorias
+                loadCategories()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao atualizar categoria", e)
+            }
+        }
+    }
+
+    fun deleteCategory(categoryId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteCategory(categoryId)
+                // Força atualização das categorias e tasks
+                loadCategories()
+                loadTasks()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao deletar categoria", e)
+            }
+        }
+    }
+
+    private fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                // Se você já tem um Flow de categorias, apenas force uma nova coleta
+                // Caso contrário, implemente uma busca manual aqui
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao carregar categorias", e)
+            }
+        }
+    }
+
+    private fun loadTasks() {
+        viewModelScope.launch {
+            try {
+                // Se você já tem um Flow de tasks, apenas force uma nova coleta
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao carregar tasks", e)
+            }
+        }
     }
 }
 
 sealed class TaskFilter {
     object All : TaskFilter()
     object Today : TaskFilter()
-    data class Category(val categoryId: Int) : TaskFilter()
+    data class Category(val categoryId: String) : TaskFilter()
 }

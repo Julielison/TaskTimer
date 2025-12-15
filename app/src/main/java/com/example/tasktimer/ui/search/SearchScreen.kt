@@ -337,9 +337,9 @@ fun FilterChip(
 @Composable
 fun FilterDialog(
     categories: List<com.example.tasktimer.model.Category>,
-    selectedCategoryIds: Set<Int>,
+    selectedCategoryIds: Set<String>,
     onDismiss: () -> Unit,
-    onCategoryToggled: (Int) -> Unit
+    onCategoryToggled: (String) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,

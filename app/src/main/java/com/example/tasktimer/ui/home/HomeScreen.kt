@@ -18,10 +18,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DataUsage
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -34,6 +39,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -67,6 +73,8 @@ fun HomeContent(
 ) {
     val overdueTasks by viewModel.overdueTasks.collectAsState()
     val todayTasks by viewModel.todayTasks.collectAsState()
+    val tomorrowTasks by viewModel.tomorrowTasks.collectAsState()
+    val laterTasks by viewModel.laterTasks.collectAsState()
     val completedTasks by viewModel.completedTasks.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
@@ -77,6 +85,8 @@ fun HomeContent(
     val scrollState = rememberScrollState()
     var isOverdueExpanded by remember { mutableStateOf(true) }
     var isTodayExpanded by remember { mutableStateOf(true) }
+    var isTomorrowExpanded by remember { mutableStateOf(true) }
+    var isLaterExpanded by remember { mutableStateOf(false) }
     var isCompletedExpanded by remember { mutableStateOf(false) }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -92,7 +102,11 @@ fun HomeContent(
                 onFilterSelected = { filter ->
                     viewModel.selectFilter(filter)
                     scope.launch { drawerState.close() }
-                }   
+                },
+                onCategoryAdded = {
+                    viewModel.refreshCategories()
+                },
+                viewModel = viewModel // Certifique-se de que o viewModel está sendo passado
             )
         }
     ) {
@@ -103,6 +117,9 @@ fun HomeContent(
                     title = filterTitle,
                     onMenuClick = { 
                         scope.launch { drawerState.open() } 
+                    },
+                    onInsertSampleData = { 
+                        viewModel.insertSampleData() 
                     }
                 ) 
             },
@@ -154,6 +171,34 @@ fun HomeContent(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 
+                // Amanhã
+                if (tomorrowTasks.isNotEmpty()) {
+                    TaskSection(
+                        title = "Amanhã",
+                        taskCount = tomorrowTasks.size,
+                        tasks = tomorrowTasks,
+                        isExpanded = isTomorrowExpanded,
+                        onToggleExpand = { isTomorrowExpanded = !isTomorrowExpanded },
+                        onTaskClick = { task -> taskToEdit = task },
+                        onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                // Mais tarde
+                if (laterTasks.isNotEmpty()) {
+                    TaskSection(
+                        title = "Mais tarde",
+                        taskCount = laterTasks.size,
+                        tasks = laterTasks,
+                        isExpanded = isLaterExpanded,
+                        onToggleExpand = { isLaterExpanded = !isLaterExpanded },
+                        onTaskClick = { task -> taskToEdit = task },
+                        onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
                 // Concluídas
                 if (completedTasks.isNotEmpty()) {
                     TaskSection(
@@ -168,7 +213,8 @@ fun HomeContent(
                 }
                 
                 // Mensagem quando não há tasks
-                if (overdueTasks.isEmpty() && todayTasks.isEmpty() && completedTasks.isEmpty()) {
+                if (overdueTasks.isEmpty() && todayTasks.isEmpty() && tomorrowTasks.isEmpty() && 
+                    laterTasks.isEmpty() && completedTasks.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -226,6 +272,9 @@ fun HomeContent(
                     showAddTaskDialog = false
                     taskToEdit = null
                 },
+                onDelete = if (taskToEdit != null) { taskId ->
+                    viewModel.deleteTask(taskId)
+                } else null,
                 categories = categories,
                 pomodoroPresets = pomodoroPresets,
                 existingTask = taskToEdit
@@ -242,7 +291,7 @@ fun TaskSection(
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onTaskClick: (Task) -> Unit,
-    onTaskToggle: (Int) -> Unit
+    onTaskToggle: (String) -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SurfaceDark),
@@ -310,31 +359,34 @@ fun TaskSection(
 @Composable
 fun HomeTopBar(
     title: String,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    onInsertSampleData: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = TextWhite,
-                    modifier = Modifier.size(32.dp)
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menu",
+                        tint = TextWhite,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    color = TextWhite,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = title,
-                color = TextWhite,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
         }
     }
 }
@@ -366,7 +418,7 @@ fun TaskItem(
                 )
             )
             
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = task.title,
                     color = if (task.isCompleted) TextGray.copy(alpha = 0.6f) else TextWhite,
@@ -392,7 +444,7 @@ fun TaskItem(
             color = when {
                 task.isCompleted -> TextGray.copy(alpha = 0.5f)
                 task.isOverdue -> Color(0xFFD32F2F)
-                task.isTimePassed -> Color(0xFFFFD600) // Amarelo quando o horário passou
+                task.isTimePassed -> Color(0xFFFFD600)
                 else -> PrimaryBlue
             },
             fontSize = 12.sp,

@@ -32,12 +32,14 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(
     onDismiss: () -> Unit,
-    onSave: (String, String?, LocalDateTime, Int?, List<Subtask>, PomodoroConfig?) -> Unit,
+    onSave: (String, String?, LocalDateTime, String?, List<Subtask>, PomodoroConfig?) -> Unit,
+    onDelete: ((String) -> Unit)? = null,
     categories: List<Category> = emptyList(),
     pomodoroPresets: List<Pair<String, PomodoroConfig>> = emptyList(),
     initialDate: LocalDate = LocalDate.now(),
@@ -47,10 +49,11 @@ fun AddTaskDialog(
     var description by remember { mutableStateOf(existingTask?.description ?: "") }
     var selectedDate by remember { mutableStateOf(existingTask?.dateTime?.toLocalDate() ?: initialDate) }
     var selectedTime by remember { mutableStateOf(existingTask?.dateTime?.toLocalTime() ?: LocalTime.now()) }
-    var selectedCategoryId by remember { mutableStateOf<Int?>(existingTask?.categoryId) }
+    var selectedCategoryId by remember { mutableStateOf<String?>(existingTask?.categoryId) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var titleError by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     
     // Subtasks - carrega existentes se houver (agora com status de conclusão)
     var subtasks by remember { 
@@ -343,7 +346,7 @@ fun AddTaskDialog(
                                 onClick = {
                                     if (newSubtaskTitle.isNotBlank()) {
                                         subtasks = subtasks + SubtaskInput(
-                                            id = (subtasks.maxOfOrNull { it.id } ?: 0) + 1,
+                                            id = UUID.randomUUID().toString(),
                                             title = newSubtaskTitle.trim(),
                                             isCompleted = false
                                         )
@@ -548,57 +551,135 @@ fun AddTaskDialog(
                         tonalElevation = 8.dp,
                         shadowElevation = 8.dp
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = onDismiss,
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = TextWhite
-                                )
-                            ) {
-                                Text("Cancelar", modifier = Modifier.padding(vertical = 8.dp))
-                            }
+                        if (existingTask != null) {
+                            // Layout para edição (3 botões)
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = onDismiss,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = TextWhite
+                                        )
+                                    ) {
+                                        Text("Cancelar", modifier = Modifier.padding(vertical = 8.dp))
+                                    }
 
-                            Button(
-                                onClick = {
-                                    if (title.isBlank()) {
-                                        titleError = true
-                                    } else {
-                                        val dateTime = LocalDateTime.of(selectedDate, selectedTime)
-                                        val finalSubtasks = subtasks.mapIndexed { index, input ->
-                                            Subtask(
-                                                id = input.id,
-                                                taskId = 0,
-                                                title = input.title,
-                                                isCompleted = input.isCompleted,
-                                                order = index
+                                    Button(
+                                        onClick = {
+                                            if (title.isBlank()) {
+                                                titleError = true
+                                            } else {
+                                                val dateTime = LocalDateTime.of(selectedDate, selectedTime)
+                                                val finalSubtasks = subtasks.mapIndexed { index, input ->
+                                                    Subtask(
+                                                        id = input.id,
+                                                        taskId = existingTask.id,
+                                                        title = input.title,
+                                                        isCompleted = input.isCompleted,
+                                                        order = index
+                                                    )
+                                                }
+                                                val finalPomodoro = if (enablePomodoro) customPomodoro else null
+
+                                                onSave(
+                                                    title.trim(),
+                                                    description.trim().takeIf { it.isNotBlank() },
+                                                    dateTime,
+                                                    selectedCategoryId,
+                                                    finalSubtasks,
+                                                    finalPomodoro
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = PrimaryBlue,
+                                            contentColor = androidx.compose.ui.graphics.Color.White
+                                        )
+                                    ) {
+                                        Text("Salvar", modifier = Modifier.padding(vertical = 8.dp))
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // Botão de deletar (linha separada)
+                                if (onDelete != null) {
+                                    Button(
+                                        onClick = { showDeleteConfirmation = true },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = androidx.compose.ui.graphics.Color(0xFFD32F2F),
+                                            contentColor = androidx.compose.ui.graphics.Color.White
+                                        )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Deletar",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Excluir Tarefa", modifier = Modifier.padding(vertical = 8.dp))
+                                    }
+                                }
+                            }
+                        } else {
+                            // Layout para criação (2 botões)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = onDismiss,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = TextWhite
+                                    )
+                                ) {
+                                    Text("Cancelar", modifier = Modifier.padding(vertical = 8.dp))
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (title.isBlank()) {
+                                            titleError = true
+                                        } else {
+                                            val dateTime = LocalDateTime.of(selectedDate, selectedTime)
+                                            val finalSubtasks = subtasks.mapIndexed { index, input ->
+                                                Subtask(
+                                                    id = input.id,
+                                                    taskId = "",
+                                                    title = input.title,
+                                                    isCompleted = input.isCompleted,
+                                                    order = index
+                                                )
+                                            }
+                                            val finalPomodoro = if (enablePomodoro) customPomodoro else null
+
+                                            onSave(
+                                                title.trim(),
+                                                description.trim().takeIf { it.isNotBlank() },
+                                                dateTime,
+                                                selectedCategoryId,
+                                                finalSubtasks,
+                                                finalPomodoro
                                             )
                                         }
-                                        val finalPomodoro = if (enablePomodoro) customPomodoro else null
-
-                                        onSave(
-                                            title.trim(),
-                                            description.trim().takeIf { it.isNotBlank() },
-                                            dateTime,
-                                            selectedCategoryId,
-                                            finalSubtasks,
-                                            finalPomodoro
-                                        )
-                                        onDismiss()
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryBlue,
-                                    contentColor = androidx.compose.ui.graphics.Color.White
-                                )
-                            ) {
-                                Text("Salvar", modifier = Modifier.padding(vertical = 8.dp))
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PrimaryBlue,
+                                        contentColor = androidx.compose.ui.graphics.Color.White
+                                    )
+                                ) {
+                                    Text("Salvar", modifier = Modifier.padding(vertical = 8.dp))
+                                }
                             }
                         }
                     }
@@ -609,10 +690,21 @@ fun AddTaskDialog(
 
     // DatePicker Dialog
     if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        )
+        
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { 
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        selectedDate = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneOffset.UTC)
+                            .toLocalDate()
+                    }
+                    showDatePicker = false
+                }) {
                     Text("OK", color = PrimaryBlue)
                 }
             },
@@ -626,9 +718,7 @@ fun AddTaskDialog(
             )
         ) {
             DatePicker(
-                state = rememberDatePickerState(
-                    initialSelectedDateMillis = selectedDate.toEpochDay() * 86400000
-                ),
+                state = datePickerState,
                 colors = DatePickerDefaults.colors(
                     containerColor = SurfaceDark,
                     titleContentColor = TextWhite,
@@ -651,6 +741,44 @@ fun AddTaskDialog(
                 selectedTime = LocalTime.of(hour, minute)
                 showTimePicker = false
             }
+        )
+    }
+
+    // Confirmação de exclusão
+    if (showDeleteConfirmation && existingTask != null && onDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { 
+                Text(
+                    "Excluir Tarefa", 
+                    color = TextWhite
+                ) 
+            },
+            text = { 
+                Text(
+                    "Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.",
+                    color = TextGray
+                ) 
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(existingTask.id)
+                        showDeleteConfirmation = false
+                        onDismiss()
+                    }
+                ) {
+                    Text("Excluir", color = androidx.compose.ui.graphics.Color(0xFFD32F2F))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmation = false }
+                ) {
+                    Text("Cancelar", color = TextGray)
+                }
+            },
+            containerColor = SurfaceDark
         )
     }
 }
@@ -703,7 +831,7 @@ private fun PomodoroConfigField(
 }
 
 private data class SubtaskInput(
-    val id: Int,
+    val id: String,
     val title: String,
     val isCompleted: Boolean = false
 )
