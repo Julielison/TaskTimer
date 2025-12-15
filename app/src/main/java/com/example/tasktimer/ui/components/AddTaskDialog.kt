@@ -610,10 +610,21 @@ fun AddTaskDialog(
 
     // DatePicker Dialog
     if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        )
+        
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { 
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        selectedDate = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneOffset.UTC)
+                            .toLocalDate()
+                    }
+                    showDatePicker = false
+                }) {
                     Text("OK", color = PrimaryBlue)
                 }
             },
@@ -627,9 +638,7 @@ fun AddTaskDialog(
             )
         ) {
             DatePicker(
-                state = rememberDatePickerState(
-                    initialSelectedDateMillis = selectedDate.toEpochDay() * 86400000
-                ),
+                state = datePickerState,
                 colors = DatePickerDefaults.colors(
                     containerColor = SurfaceDark,
                     titleContentColor = TextWhite,
