@@ -28,6 +28,7 @@ import com.example.tasktimer.ui.home.TaskFilter
 import com.example.tasktimer.ui.theme.SurfaceDark
 import kotlinx.coroutines.launch
 
+
 @Composable
 fun DrawerContent(
     categories: List<Category>,
@@ -39,11 +40,11 @@ fun DrawerContent(
     val scope = rememberCoroutineScope()
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
-    
+
     val menuItems = remember(categories, selectedFilter) {
         buildDrawerMenuItems(categories, selectedFilter)
     }
-    
+
     ModalDrawerSheet(drawerContainerColor = SurfaceDark) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -72,7 +73,7 @@ fun DrawerContent(
             DrawerFooter(onAddCategoryClick = { showAddCategoryDialog = true })
         }
     }
-    
+
     if (showAddCategoryDialog) {
         AddCategoryDialog(
             onDismiss = { showAddCategoryDialog = false },

@@ -372,12 +372,6 @@ fun HomeTopBar(
                 fontWeight = FontWeight.Bold
             )
         }
-        Icon(
-            imageVector = Icons.Filled.Dashboard,
-            contentDescription = "Stats",
-            tint = TextWhite,
-            modifier = Modifier.size(28.dp)
-        )
     }
 }
 
