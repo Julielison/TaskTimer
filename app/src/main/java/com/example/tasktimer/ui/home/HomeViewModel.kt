@@ -16,6 +16,9 @@ import java.time.LocalDateTime
 class HomeViewModel : ViewModel() {
     private val repository = FirestoreRepository()
 
+    // Adicione esta variável para armazenar todas as tasks
+    private var allTasks = listOf<Task>()
+
     private val _overdueTasks = MutableStateFlow<List<Task>>(emptyList())
     val overdueTasks: StateFlow<List<Task>> = _overdueTasks.asStateFlow()
 
@@ -50,7 +53,15 @@ class HomeViewModel : ViewModel() {
         
         viewModelScope.launch {
             repository.getTasksFlow().collect { tasks ->
+                allTasks = tasks
                 updateTaskLists(tasks)
+            }
+        }
+        
+        // Adicione um listener para mudanças no filtro
+        viewModelScope.launch {
+            _selectedFilter.collect {
+                updateTaskLists(allTasks)
             }
         }
         
