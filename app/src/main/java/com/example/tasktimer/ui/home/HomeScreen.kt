@@ -20,9 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DataUsage
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,6 +39,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -268,6 +271,9 @@ fun HomeContent(
                     showAddTaskDialog = false
                     taskToEdit = null
                 },
+                onDelete = if (taskToEdit != null) { taskId ->
+                    viewModel.deleteTask(taskId)
+                } else null,
                 categories = categories,
                 pomodoroPresets = pomodoroPresets,
                 existingTask = taskToEdit
@@ -411,7 +417,7 @@ fun TaskItem(
                 )
             )
             
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = task.title,
                     color = if (task.isCompleted) TextGray.copy(alpha = 0.6f) else TextWhite,
@@ -437,7 +443,7 @@ fun TaskItem(
             color = when {
                 task.isCompleted -> TextGray.copy(alpha = 0.5f)
                 task.isOverdue -> Color(0xFFD32F2F)
-                task.isTimePassed -> Color(0xFFFFD600) // Amarelo quando o horário passou
+                task.isTimePassed -> Color(0xFFFFD600)
                 else -> PrimaryBlue
             },
             fontSize = 12.sp,

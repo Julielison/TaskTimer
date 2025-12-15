@@ -2,6 +2,7 @@ package com.example.tasktimer.ui.components.drawer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,7 +41,8 @@ fun DrawerHeader() {
 @Composable
 fun DrawerMenuItems(
     items: List<DrawerMenuItem>,
-    onItemClick: (DrawerMenuItem) -> Unit
+    onItemClick: (DrawerMenuItem) -> Unit,
+    onCategoryLongPress: (String) -> Unit = {}
 ) {
     items.forEach { item ->
         DrawerItem(
@@ -46,7 +50,10 @@ fun DrawerMenuItems(
             icon = item.icon,
             color = (item as? DrawerMenuItem.CategoryItem)?.category?.color,
             isSelected = item.isSelected,
-            onClick = { onItemClick(item) }
+            onClick = { onItemClick(item) },
+            onLongPress = if (item is DrawerMenuItem.CategoryItem) {
+                { onCategoryLongPress(item.category.id) }
+            } else null
         )
         
         if (item is DrawerMenuItem.FilterItem && item.title == "Hoje") {
@@ -95,8 +102,11 @@ private fun DrawerItem(
     icon: String,
     color: Color? = null,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongPress: (() -> Unit)? = null
 ) {
+    val haptic = LocalHapticFeedback.current
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -106,7 +116,19 @@ private fun DrawerItem(
     ) {
         Row(
             modifier = Modifier
-                .clickable(onClick = onClick)
+                .let { modifier ->
+                    if (onLongPress != null) {
+                        modifier.combinedClickable(
+                            onClick = onClick,
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onLongPress()
+                            }
+                        )
+                    } else {
+                        modifier.clickable(onClick = onClick)
+                    }
+                }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)

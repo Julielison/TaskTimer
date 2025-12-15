@@ -1,5 +1,6 @@
 package com.example.tasktimer.data
 
+import androidx.compose.ui.graphics.toArgb
 import com.example.tasktimer.model.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -169,6 +170,32 @@ class FirestoreRepository {
         return docRef.id
     }
 
+    suspend fun updateCategory(categoryId: String, name: String, color: androidx.compose.ui.graphics.Color) {
+        val updates = mapOf(
+            "name" to name,
+            "color" to color.toArgb()
+        )
+        categoriesCollection.document(categoryId).update(updates).await()
+    }
+
+    suspend fun deleteCategory(categoryId: String) {
+        // Primeiro, remover a categoria de todas as tasks que a usam
+        val tasksWithCategory = tasksCollection
+            .whereEqualTo("categoryId", categoryId)
+            .get()
+            .await()
+        
+        tasksWithCategory.documents.forEach { doc ->
+            tasksCollection.document(doc.id).update("categoryId", null).await()
+        }
+        
+        // Depois deletar a categoria
+        categoriesCollection.document(categoryId).delete().await()
+    }
+
+    suspend fun deleteTask(taskId: String) {
+        tasksCollection.document(taskId).delete().await()
+    }
 
     // Pomodoro Presets (hardcoded, não precisa Firestore)
     fun getPomodoroPresets(): List<Pair<String, PomodoroConfig>> {

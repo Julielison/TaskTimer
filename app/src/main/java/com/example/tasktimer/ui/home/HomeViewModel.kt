@@ -175,6 +175,16 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    fun deleteTask(taskId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteTask(taskId)
+            } catch (e: Exception) {
+                println("Erro ao deletar task: ${e.message}")
+            }
+        }
+    }
+
     fun insertSampleData() {
         viewModelScope.launch {
             try {
