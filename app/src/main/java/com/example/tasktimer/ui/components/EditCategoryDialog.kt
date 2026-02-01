@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.ui.theme.*
 
@@ -27,11 +28,14 @@ import com.example.tasktimer.ui.theme.*
 fun EditCategoryDialog(
     category: Category,
     onDismiss: () -> Unit,
-    onConfirm: (String, Color) -> Unit
+    onConfirm: (String, Color) -> Unit,
+    viewModel: CategoryDialogViewModel = viewModel()
 ) {
-    var categoryName by remember { mutableStateOf(category.name) }
-    var selectedColor by remember { mutableStateOf(category.color) }
-    var nameError by remember { mutableStateOf(false) }
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(category) {
+        viewModel.initializeForEdit(category)
+    }
 
     val colors = listOf(
         Color(0xFF2196F3), Color(0xFF4CAF50), Color(0xFFFF9800),
@@ -60,10 +64,9 @@ fun EditCategoryDialog(
                 )
 
                 OutlinedTextField(
-                    value = categoryName,
+                    value = state.categoryName,
                     onValueChange = { 
-                        categoryName = it
-                        nameError = false
+                        viewModel.updateCategoryName(it)
                     },
                     label = { Text("Nome da categoria", color = TextGray) },
                     modifier = Modifier.fillMaxWidth(),
@@ -75,8 +78,8 @@ fun EditCategoryDialog(
                         errorBorderColor = Color(0xFFD32F2F),
                         cursorColor = PrimaryBlue
                     ),
-                    isError = nameError,
-                    supportingText = if (nameError) {
+                    isError = state.nameError,
+                    supportingText = if (state.nameError) {
                         { Text("Nome é obrigatório", color = Color(0xFFD32F2F)) }
                     } else null
                 )
@@ -103,11 +106,11 @@ fun EditCategoryDialog(
                                     .clip(CircleShape)
                                     .background(color)
                                     .border(
-                                        width = if (selectedColor == color) 3.dp else 0.dp,
+                                        width = if (color == state.selectedColor) 3.dp else 0.dp,
                                         color = TextWhite,
                                         shape = CircleShape
                                     )
-                                    .clickable { selectedColor = color }
+                                    .clickable { viewModel.updateSelectedColor(color) }
                             )
                         }
                     }
@@ -129,11 +132,13 @@ fun EditCategoryDialog(
 
                     Button(
                         onClick = {
-                            if (categoryName.trim().isBlank()) {
-                                nameError = true
-                            } else {
-                                onConfirm(categoryName.trim(), selectedColor)
-                            }
+                            viewModel.updateCategory(
+                                categoryId = category.id,
+                                onSuccess = {
+                                    onConfirm(state.categoryName, state.selectedColor)
+                                    onDismiss()
+                                }
+                            )
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(

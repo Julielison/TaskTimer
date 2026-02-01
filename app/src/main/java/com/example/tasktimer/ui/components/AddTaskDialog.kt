@@ -58,7 +58,7 @@ fun AddTaskDialog(
     // Subtasks - carrega existentes se houver (agora com status de conclusão)
     var subtasks by remember { 
         mutableStateOf<List<SubtaskInput>>(
-            existingTask?.subtasks?.map { 
+            existingTask?.subtasks?.map {
                 SubtaskInput(it.id, it.title, it.isCompleted) 
             } ?: emptyList()
         ) 

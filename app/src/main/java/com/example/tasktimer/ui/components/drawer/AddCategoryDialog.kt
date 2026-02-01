@@ -14,15 +14,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.tasktimer.ui.components.CategoryDialogViewModel
 import com.example.tasktimer.ui.theme.*
 
 @Composable
 fun AddCategoryDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, Color) -> Unit
+    onConfirm: (String, Color) -> Unit,
+    viewModel: CategoryDialogViewModel = viewModel()
 ) {
-    var categoryName by remember { mutableStateOf("") }
-    var selectedColor by remember { mutableStateOf(CategoryColors.defaultColor) }
+    val state by viewModel.state.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        viewModel.reset()
+    }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -39,28 +45,30 @@ fun AddCategoryDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 CategoryNameField(
-                    value = categoryName,
-                    onValueChange = { categoryName = it }
+                    value = state.categoryName,
+                    onValueChange = { viewModel.updateCategoryName(it) },
+                    error = state.nameError
                 )
                 
                 ColorPicker(
-                    selectedColor = selectedColor,
-                    onColorSelected = { selectedColor = it }
+                    selectedColor = state.selectedColor,
+                    onColorSelected = { viewModel.updateSelectedColor(it) }
                 )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (categoryName.isNotBlank()) {
-                        onConfirm(categoryName.trim(), selectedColor)
+                    if (state.categoryName.isNotBlank()) {
+                        onConfirm(state.categoryName.trim(), state.selectedColor)
+                        onDismiss()
                     }
                 },
-                enabled = categoryName.isNotBlank()
+                enabled = state.categoryName.isNotBlank()
             ) {
                 Text(
                     text = "Criar",
-                    color = if (categoryName.isNotBlank()) PrimaryBlue else TextGray
+                    color = if (state.categoryName.isNotBlank()) PrimaryBlue else TextGray
                 )
             }
         },
@@ -76,7 +84,8 @@ fun AddCategoryDialog(
 @Composable
 private fun CategoryNameField(
     value: String,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    error: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
@@ -88,10 +97,15 @@ private fun CategoryNameField(
             unfocusedTextColor = TextWhite,
             focusedBorderColor = PrimaryBlue,
             unfocusedBorderColor = TextGray,
+            errorBorderColor = Color(0xFFD32F2F),
             cursorColor = PrimaryBlue
         ),
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true
+        singleLine = true,
+        isError = error,
+        supportingText = if (error) {
+            { Text("Nome é obrigatório", color = Color(0xFFD32F2F)) }
+        } else null
     )
 }
 

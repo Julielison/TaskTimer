@@ -19,13 +19,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.ui.components.drawer.*
-import com.example.tasktimer.ui.home.HomeViewModel
 import com.example.tasktimer.ui.home.TaskFilter
 import com.example.tasktimer.ui.theme.PrimaryBlue
 import com.example.tasktimer.ui.theme.SurfaceDark
-import kotlinx.coroutines.launch
 
 @Composable
 fun DrawerContent(
@@ -33,14 +32,15 @@ fun DrawerContent(
     selectedFilter: TaskFilter,
     onFilterSelected: (TaskFilter) -> Unit,
     onCategoryAdded: () -> Unit = {},
-    viewModel: HomeViewModel? = null
+    drawerViewModel: DrawerViewModel = viewModel()
 ) {
-    var showAddCategoryDialog by remember { mutableStateOf(false) }
-    var showDeleteCategoryDialog by remember { mutableStateOf(false) }
+    val showAddCategoryDialog by drawerViewModel.showAddCategoryDialog.collectAsState()
+    val showDeleteCategoryDialog by drawerViewModel.showDeleteCategoryDialog.collectAsState()
+    val showEditCategoryDialog by drawerViewModel.showEditCategoryDialog.collectAsState()
+    val categoryToDelete by drawerViewModel.categoryToDelete.collectAsState()
+    val categoryToEdit by drawerViewModel.categoryToEdit.collectAsState()
+    
     var showCategoryOptionsModal by remember { mutableStateOf(false) }
-    var showEditCategoryDialog by remember { mutableStateOf(false) }
-    var categoryToDelete by remember { mutableStateOf<Category?>(null) }
-    var categoryToEdit by remember { mutableStateOf<Category?>(null) }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
     val scrollState = rememberScrollState()
     
@@ -78,7 +78,7 @@ fun DrawerContent(
                 )
             }
             
-            DrawerFooter(onAddCategoryClick = { showAddCategoryDialog = true })
+            DrawerFooter(onAddCategoryClick = { drawerViewModel.showAddCategoryDialog() })
         }
     }
     
@@ -107,8 +107,9 @@ fun DrawerContent(
                     // Botão Editar
                     Button(
                         onClick = {
-                            categoryToEdit = selectedCategory
-                            showEditCategoryDialog = true
+                            selectedCategory?.let { 
+                                drawerViewModel.showEditCategoryDialog(it)
+                            }
                             showCategoryOptionsModal = false
                             selectedCategory = null
                         },
@@ -133,8 +134,9 @@ fun DrawerContent(
                     // Botão Excluir
                     Button(
                         onClick = {
-                            categoryToDelete = selectedCategory
-                            showDeleteCategoryDialog = true
+                            selectedCategory?.let { 
+                                drawerViewModel.showDeleteCategoryDialog(it)
+                            }
                             showCategoryOptionsModal = false
                             selectedCategory = null
                         },
@@ -173,10 +175,9 @@ fun DrawerContent(
     // Dialog para adicionar categoria
     if (showAddCategoryDialog) {
         AddCategoryDialog(
-            onDismiss = { showAddCategoryDialog = false },
+            onDismiss = { drawerViewModel.hideAddCategoryDialog() },
             onConfirm = { name, color ->
-                viewModel?.addCategory(name, color)
-                showAddCategoryDialog = false
+                drawerViewModel.addCategory(name, color)
                 onCategoryAdded()
             }
         )
@@ -187,14 +188,11 @@ fun DrawerContent(
         EditCategoryDialog(
             category = categoryToEdit!!,
             onDismiss = { 
-                showEditCategoryDialog = false
-                categoryToEdit = null
+                drawerViewModel.hideEditCategoryDialog()
             },
             onConfirm = { name, color ->
                 android.util.Log.d("NavigationDrawer", "Atualizando categoria: $name")
-                viewModel?.updateCategory(categoryToEdit!!.id, name, color)
-                showEditCategoryDialog = false
-                categoryToEdit = null
+                drawerViewModel.updateCategory(categoryToEdit!!.id, name, color)
                 onCategoryAdded()
             }
         )
@@ -204,8 +202,7 @@ fun DrawerContent(
     if (showDeleteCategoryDialog && categoryToDelete != null) {
         AlertDialog(
             onDismissRequest = { 
-                showDeleteCategoryDialog = false
-                categoryToDelete = null
+                drawerViewModel.hideDeleteCategoryDialog()
             },
             title = { 
                 Text(
@@ -223,9 +220,7 @@ fun DrawerContent(
                 TextButton(
                     onClick = {
                         android.util.Log.d("NavigationDrawer", "Deletando categoria: ${categoryToDelete!!.name}")
-                        viewModel?.deleteCategory(categoryToDelete!!.id)
-                        showDeleteCategoryDialog = false
-                        categoryToDelete = null
+                        drawerViewModel.deleteCategory(categoryToDelete!!.id)
                         onCategoryAdded()
                     }
                 ) {
@@ -235,8 +230,7 @@ fun DrawerContent(
             dismissButton = {
                 TextButton(
                     onClick = { 
-                        showDeleteCategoryDialog = false
-                        categoryToDelete = null
+                        drawerViewModel.hideDeleteCategoryDialog()
                     }
                 ) {
                     Text("Cancelar", color = androidx.compose.ui.graphics.Color.Gray)
