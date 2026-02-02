@@ -67,8 +67,19 @@ fun AddTaskDialog(
     
     // Pomodoro - carrega configuração existente
     var enablePomodoro by remember { mutableStateOf(existingTask?.pomodoroConfig != null) }
-    var selectedPomodoroPreset by remember { mutableStateOf<String?>(null) }
-    var showPomodoroConfig by remember { mutableStateOf(false) }
+    
+    // Identifica qual preset corresponde à configuração existente
+    val matchingPreset = existingTask?.pomodoroConfig?.let { config ->
+        pomodoroPresets.firstOrNull { (_, presetConfig) ->
+            presetConfig.workDurationMinutes == config.workDurationMinutes &&
+            presetConfig.breakDurationMinutes == config.breakDurationMinutes &&
+            presetConfig.longBreakDurationMinutes == config.longBreakDurationMinutes &&
+            presetConfig.totalPomodoros == config.totalPomodoros
+        }?.first
+    }
+    
+    var selectedPomodoroPreset by remember { mutableStateOf<String?>(matchingPreset) }
+    var showPomodoroConfig by remember { mutableStateOf(matchingPreset == null && existingTask?.pomodoroConfig != null) }
     var customPomodoro by remember { mutableStateOf(existingTask?.pomodoroConfig ?: PomodoroConfig()) }
 
     // Animação para slide de baixo para cima
