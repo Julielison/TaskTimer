@@ -2,7 +2,7 @@ package com.example.tasktimer.ui.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.tasktimer.data.FirestoreRepository
+import com.example.tasktimer.data.RoomRepository
 import com.example.tasktimer.model.CalendarDay
 import com.example.tasktimer.model.PomodoroConfig
 import com.example.tasktimer.model.Subtask
@@ -17,7 +17,7 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 class CalendarViewModel(
-    private val repository: FirestoreRepository
+    private val repository: RoomRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()

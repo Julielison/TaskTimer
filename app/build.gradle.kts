@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
     id("com.google.gms.google-services")
 }
 
@@ -65,4 +66,12 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    
+    // Gson for Room converters
+    implementation("com.google.code.gson:gson:2.10.1")
 }

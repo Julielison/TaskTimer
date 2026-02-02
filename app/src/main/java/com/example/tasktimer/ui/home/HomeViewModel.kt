@@ -2,7 +2,7 @@ package com.example.tasktimer.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.tasktimer.data.FirestoreRepository
+import com.example.tasktimer.data.RoomRepository
 import com.example.tasktimer.data.SampleDataInserter
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.model.PomodoroConfig
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 class HomeViewModel(
-    private val repository: FirestoreRepository,
+    private val repository: RoomRepository,
     private val sampleDataInserter: SampleDataInserter
 ) : ViewModel() {
     // Adicione esta variável para armazenar todas as tasks

@@ -3,7 +3,7 @@ package com.example.tasktimer.ui.components
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.tasktimer.data.FirestoreRepository
+import com.example.tasktimer.data.RoomRepository
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.ui.components.drawer.CategoryColors
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ data class CategoryDialogState(
 )
 
 class CategoryDialogViewModel(
-    private val repository: FirestoreRepository
+    private val repository: RoomRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(CategoryDialogState())
     val state: StateFlow<CategoryDialogState> = _state.asStateFlow()

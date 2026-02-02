@@ -2,7 +2,7 @@ package com.example.tasktimer.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.tasktimer.data.FirestoreRepository
+import com.example.tasktimer.data.RoomRepository
 import com.example.tasktimer.model.PomodoroConfig
 import com.example.tasktimer.model.Subtask
 import com.example.tasktimer.model.Task
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 class SearchViewModel(
-    private val repository: FirestoreRepository
+    private val repository: RoomRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
