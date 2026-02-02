@@ -43,7 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.tasktimer.model.CalendarDay
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.components.AddTaskDialog
@@ -56,7 +56,7 @@ import java.time.LocalDate
 
 @Composable
 fun CalendarContent(
-    viewModel: CalendarViewModel = viewModel(),
+    viewModel: CalendarViewModel = koinViewModel(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val uiState = viewModel.uiState.collectAsState().value

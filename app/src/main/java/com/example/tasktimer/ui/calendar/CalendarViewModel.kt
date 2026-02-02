@@ -16,9 +16,9 @@ import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.Locale
 
-class CalendarViewModel : ViewModel() {
-    private val repository = FirestoreRepository()
-
+class CalendarViewModel(
+    private val repository: FirestoreRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 

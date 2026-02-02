@@ -12,9 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
-class SearchViewModel : ViewModel() {
-    private val repository = FirestoreRepository()
-
+class SearchViewModel(
+    private val repository: FirestoreRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 

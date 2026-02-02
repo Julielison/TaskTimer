@@ -18,7 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.ui.components.drawer.*
 import com.example.tasktimer.ui.home.TaskFilter
@@ -31,7 +31,7 @@ fun DrawerContent(
     selectedFilter: TaskFilter,
     onFilterSelected: (TaskFilter) -> Unit,
     onCategoryAdded: () -> Unit = {},
-    drawerViewModel: DrawerViewModel = viewModel()
+    drawerViewModel: DrawerViewModel = koinViewModel()
 ) {
     val uiState = drawerViewModel.uiState.collectAsState().value
     

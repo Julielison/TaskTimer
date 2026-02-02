@@ -15,13 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.tasktimer.ui.dashboard.components.DetailsSection
 import com.example.tasktimer.ui.dashboard.components.StatsGrid
 
 @Composable
 fun FocusStatisticsScreen(
-    viewModel: FocusStatsViewModel = viewModel()
+    viewModel: FocusStatsViewModel = koinViewModel()
 ) {
     val state by viewModel.state
 

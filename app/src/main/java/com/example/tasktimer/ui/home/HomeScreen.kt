@@ -55,7 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.components.AddTaskDialog
 import com.example.tasktimer.ui.components.DrawerContent
@@ -69,7 +69,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeContent(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = koinViewModel()
 ) {
     val uiState = viewModel.uiState.collectAsState().value
     var showAddTaskDialog by remember { mutableStateOf(false) }

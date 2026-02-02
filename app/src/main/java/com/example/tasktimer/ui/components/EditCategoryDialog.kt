@@ -19,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.tasktimer.model.Category
 import com.example.tasktimer.ui.theme.*
 
@@ -29,7 +29,7 @@ fun EditCategoryDialog(
     category: Category,
     onDismiss: () -> Unit,
     onConfirm: (String, Color) -> Unit,
-    viewModel: CategoryDialogViewModel = viewModel()
+    viewModel: CategoryDialogViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 

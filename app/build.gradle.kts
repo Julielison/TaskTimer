@@ -63,4 +63,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
 }

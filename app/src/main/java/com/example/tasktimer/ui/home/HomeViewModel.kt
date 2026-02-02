@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
-class HomeViewModel : ViewModel() {
-    private val repository = FirestoreRepository()
-    private val sampleDataInserter = SampleDataInserter(repository)
-
+class HomeViewModel(
+    private val repository: FirestoreRepository,
+    private val sampleDataInserter: SampleDataInserter
+) : ViewModel() {
     // Adicione esta variável para armazenar todas as tasks
     private var allTasks = listOf<Task>()
 

@@ -17,9 +17,9 @@ data class CategoryDialogState(
     val nameError: Boolean = false
 )
 
-class CategoryDialogViewModel : ViewModel() {
-    private val repository = FirestoreRepository()
-
+class CategoryDialogViewModel(
+    private val repository: FirestoreRepository
+) : ViewModel() {
     private val _state = MutableStateFlow(CategoryDialogState())
     val state: StateFlow<CategoryDialogState> = _state.asStateFlow()
 

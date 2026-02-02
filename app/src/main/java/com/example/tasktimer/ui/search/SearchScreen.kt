@@ -53,7 +53,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.tasktimer.model.Task
 import com.example.tasktimer.ui.components.AddTaskDialog
 import com.example.tasktimer.ui.theme.DarkBackground
@@ -65,7 +65,7 @@ import com.example.tasktimer.ui.theme.TextWhite
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SearchContent(
-    viewModel: SearchViewModel = viewModel()
+    viewModel: SearchViewModel = koinViewModel()
 ) {
     val uiState = viewModel.uiState.collectAsState().value
     var showFilterDialog by remember { mutableStateOf(false) }

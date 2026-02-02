@@ -5,12 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tasktimer.data.FirebaseFocusStatsRepository
+import com.example.tasktimer.data.FocusStatsRepository
 import kotlinx.coroutines.launch
 
-class FocusStatsViewModel : ViewModel() {
-
-    private val repository = FirebaseFocusStatsRepository()
-
+class FocusStatsViewModel(
+    private val repository: FocusStatsRepository
+) : ViewModel() {
     private val _state = mutableStateOf(FocusStatsState())
     val state: State<FocusStatsState> = _state
 

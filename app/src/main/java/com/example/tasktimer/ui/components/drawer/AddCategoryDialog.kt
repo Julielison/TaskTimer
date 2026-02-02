@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.tasktimer.ui.components.CategoryDialogViewModel
 import com.example.tasktimer.ui.theme.*
 
@@ -22,7 +22,7 @@ import com.example.tasktimer.ui.theme.*
 fun AddCategoryDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, Color) -> Unit,
-    viewModel: CategoryDialogViewModel = viewModel()
+    viewModel: CategoryDialogViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     

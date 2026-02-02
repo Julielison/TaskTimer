@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class DrawerViewModel : ViewModel() {
-    private val repository = FirestoreRepository()
-
+class DrawerViewModel(
+    private val repository: FirestoreRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(DrawerUiState())
     val uiState: StateFlow<DrawerUiState> = _uiState.asStateFlow()
 
