@@ -100,6 +100,11 @@ class FirestoreRepository {
         return docRef.id
     }
 
+    // Adicionar task com ID específico (para sincronização Room → Firebase)
+    suspend fun addTaskWithId(task: Task) {
+        tasksCollection.document(task.id).set(task.toMap()).await()
+    }
+
     suspend fun updateTask(
         taskId: String,
         title: String,
@@ -168,6 +173,12 @@ class FirestoreRepository {
         val category = Category(name = name, color = color)
         val docRef = categoriesCollection.add(category.toMap()).await()
         return docRef.id
+    }
+
+    // Adicionar categoria com ID específico (para sincronização Room → Firebase)
+    suspend fun addCategoryWithId(categoryId: String, name: String, color: androidx.compose.ui.graphics.Color) {
+        val category = Category(id = categoryId, name = name, color = color)
+        categoriesCollection.document(categoryId).set(category.toMap()).await()
     }
 
     suspend fun updateCategory(categoryId: String, name: String, color: androidx.compose.ui.graphics.Color) {

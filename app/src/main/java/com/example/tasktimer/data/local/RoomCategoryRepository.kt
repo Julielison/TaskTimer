@@ -42,6 +42,17 @@ class RoomCategoryRepository(private val categoryDao: CategoryDao) {
         return id
     }
 
+    suspend fun addCategoryWithId(id: String, name: String, color: Color) {
+        val category = CategoryEntity(
+            id = id,
+            name = name,
+            colorArgb = color.toArgb(),
+            icon = null,
+            createdAt = System.currentTimeMillis()
+        )
+        categoryDao.insert(category)
+    }
+
     suspend fun updateCategory(categoryId: String, name: String, color: Color) {
         val existing = categoryDao.getById(categoryId) ?: return
         val updated = existing.copy(name = name, colorArgb = color.toArgb())

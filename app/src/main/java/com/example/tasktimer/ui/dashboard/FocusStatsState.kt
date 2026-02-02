@@ -5,7 +5,7 @@ import com.example.tasktimer.model.FocusStats
 data class FocusStatsState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
-    val stats: List<FocusStats> = emptyList(), // CORREÇÃO: Inicialize com lista vazia
+    val stats: List<FocusStats> = emptyList(),
     val selectedPeriod: StatsPeriod = StatsPeriod.WEEK
 )
 

@@ -31,10 +31,12 @@ val appModule = module {
     single { RoomCategoryRepository(get()) }
     single { RoomTaskRepository(get(), get()) }
     single { RoomFocusStatsRepository(get(), get()) }
-    single { RoomRepository(get(), get(), get()) }
     
-    // Firebase Repositories (mantidos para compatibilidade)
+    // Firebase Repository (para sincronização)
     single { FirestoreRepository() }
+    
+    // Repositório unificado com sincronização Room + Firebase
+    single { RoomRepository(get(), get(), get(), get<FirestoreRepository>()) }
     
     single { SampleDataInserter(get()) }
 

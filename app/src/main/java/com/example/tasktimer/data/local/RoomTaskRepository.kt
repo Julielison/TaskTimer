@@ -20,6 +20,10 @@ class RoomTaskRepository(
         }
     }
 
+    suspend fun getAllTasksOnce(): List<Task> {
+        return taskDao.getAll().map { it.toTask() }
+    }
+
     suspend fun getTaskById(id: String): Task? {
         return taskDao.getById(id)?.toTask()
     }
