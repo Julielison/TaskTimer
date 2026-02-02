@@ -59,12 +59,7 @@ fun CalendarContent(
     viewModel: CalendarViewModel = viewModel(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
-    val calendarDays: List<CalendarDay> by viewModel.calendarDays.collectAsState()
-    val tasksForSelectedDate by viewModel.tasksForSelectedDate.collectAsState()
-    val monthYearText by viewModel.monthYearText.collectAsState()
-    val selectedDate by viewModel.selectedDate.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
+    val uiState = viewModel.uiState.collectAsState().value
     val scrollState = rememberScrollState()
     var showAddTaskDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
@@ -90,10 +85,10 @@ fun CalendarContent(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            CalendarHeader(monthYearText = monthYearText)
+            CalendarHeader(monthYearText = uiState.monthYearText)
             
             WeekCalendar(
-                days = calendarDays,
+                days = uiState.calendarDays,
                 onDayClick = { day -> viewModel.selectDay(day.dayOfMonth) },
                 onSwipe = { direction -> viewModel.navigateWeek(direction) }
             )
@@ -101,8 +96,8 @@ fun CalendarContent(
             Spacer(modifier = Modifier.height(16.dp))
             
             TasksList(
-                tasks = tasksForSelectedDate,
-                selectedDate = selectedDate,
+                tasks = uiState.tasksForSelectedDate,
+                selectedDate = uiState.selectedDate,
                 onTaskClick = { task -> taskToEdit = task },
                 onTaskToggle = { taskId -> viewModel.toggleTaskCompletion(taskId) }
             )
@@ -133,9 +128,9 @@ fun CalendarContent(
                 showAddTaskDialog = false
                 taskToEdit = null
             },
-            categories = categories,
-            pomodoroPresets = pomodoroPresets,
-            initialDate = selectedDate,
+            categories = uiState.categories,
+            pomodoroPresets = uiState.pomodoroPresets,
+            initialDate = uiState.selectedDate,
             existingTask = taskToEdit
         )
     }

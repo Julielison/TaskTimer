@@ -4,10 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tasktimer.data.FirestoreRepository
 import com.example.tasktimer.model.CalendarDay
-import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
 import com.example.tasktimer.model.Subtask
-import com.example.tasktimer.model.Task
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,25 +19,10 @@ import java.util.Locale
 class CalendarViewModel : ViewModel() {
     private val repository = FirestoreRepository()
 
-    private val _calendarDays = MutableStateFlow<List<CalendarDay>>(emptyList())
-    val calendarDays: StateFlow<List<CalendarDay>> = _calendarDays.asStateFlow()
-
-    private val _selectedDate = MutableStateFlow<LocalDate>(LocalDate.now())
-    val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
+    private val _uiState = MutableStateFlow(CalendarUiState())
+    val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
     private val _currentWeekStart = MutableStateFlow<LocalDate>(getWeekStart(LocalDate.now()))
-
-    private val _tasksForSelectedDate = MutableStateFlow<List<Task>>(emptyList())
-    val tasksForSelectedDate: StateFlow<List<Task>> = _tasksForSelectedDate.asStateFlow()
-
-    private val _monthYearText = MutableStateFlow("")
-    val monthYearText: StateFlow<String> = _monthYearText.asStateFlow()
-
-    private val _categories = MutableStateFlow<List<Category>>(emptyList())
-    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
-
-    private val _pomodoroPresets = MutableStateFlow<List<Pair<String, PomodoroConfig>>>(emptyList())
-    val pomodoroPresets: StateFlow<List<Pair<String, PomodoroConfig>>> = _pomodoroPresets.asStateFlow()
 
     init {
         loadData()
@@ -52,7 +35,7 @@ class CalendarViewModel : ViewModel() {
         viewModelScope.launch {
             repository.getTasksFlow().collect {
                 loadWeekDays(_currentWeekStart.value)
-                loadTasksForDate(_selectedDate.value)
+                loadTasksForDate(_uiState.value.selectedDate)
             }
         }
     }
@@ -60,10 +43,10 @@ class CalendarViewModel : ViewModel() {
     private fun loadData() {
         viewModelScope.launch {
             repository.getCategoriesFlow().collect { categories ->
-                _categories.value = categories
+                _uiState.value = _uiState.value.copy(categories = categories)
             }
         }
-        _pomodoroPresets.value = repository.getPomodoroPresets()
+        _uiState.value = _uiState.value.copy(pomodoroPresets = repository.getPomodoroPresets())
     }
 
     private fun getWeekStart(date: LocalDate): LocalDate {
@@ -78,7 +61,7 @@ class CalendarViewModel : ViewModel() {
             
             for (i in 0..6) {
                 val date = weekStart.plusDays(i.toLong())
-                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
+                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("pt-BR"))
                 
                 val tasksForDay = repository.getTasksByDate(date)
                 val completedCount = tasksForDay.count { it.isCompleted }
@@ -89,7 +72,7 @@ class CalendarViewModel : ViewModel() {
                         dayOfMonth = date.dayOfMonth,
                         dayOfWeek = dayOfWeek.take(3).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
                         isToday = date == today,
-                        isSelected = date == _selectedDate.value,
+                        isSelected = date == _uiState.value.selectedDate,
                         fullDate = date,
                         taskCount = tasksForDay.size,
                         completedTaskCount = completedCount,
@@ -98,30 +81,33 @@ class CalendarViewModel : ViewModel() {
                 )
             }
             
-            _calendarDays.value = days
+            _uiState.value = _uiState.value.copy(calendarDays = days)
             updateMonthYearText(weekStart)
         }
     }
 
     private fun updateMonthYearText(weekStart: LocalDate) {
-        val monthName = weekStart.month.getDisplayName(TextStyle.FULL, Locale("pt", "BR"))
+        val monthName = weekStart.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR"))
             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
         val year = weekStart.year
         
-        _monthYearText.value = "$monthName de $year"
+        _uiState.value = _uiState.value.copy(monthYearText = "$monthName de $year")
     }
 
     fun selectDay(dayOfMonth: Int) {
-        val date = _calendarDays.value.find { it.dayOfMonth == dayOfMonth }?.fullDate
+        val date = _uiState.value.calendarDays.find { it.dayOfMonth == dayOfMonth }?.fullDate
         date?.let { selectDate(it) }
     }
 
     private fun selectDate(date: LocalDate) {
-        _selectedDate.value = date
-        
-        _calendarDays.value = _calendarDays.value.map {
+        val updatedDays = _uiState.value.calendarDays.map {
             it.copy(isSelected = it.fullDate == date)
         }
+        
+        _uiState.value = _uiState.value.copy(
+            selectedDate = date,
+            calendarDays = updatedDays
+        )
         
         loadTasksForDate(date)
     }
@@ -132,7 +118,7 @@ class CalendarViewModel : ViewModel() {
         loadWeekDays(newWeekStart)
         
         // Se a data selecionada não está na nova semana, seleciona o primeiro dia
-        val selectedInNewWeek = _calendarDays.value.any { it.fullDate == _selectedDate.value }
+        val selectedInNewWeek = _uiState.value.calendarDays.any { it.fullDate == _uiState.value.selectedDate }
         if (!selectedInNewWeek) {
             selectDate(newWeekStart)
         }
@@ -140,8 +126,8 @@ class CalendarViewModel : ViewModel() {
 
     private fun loadTasksForDate(date: LocalDate) {
         viewModelScope.launch {
-            _tasksForSelectedDate.value = repository.getTasksByDate(date)
-                .sortedBy { it.dateTime }
+            val tasks = repository.getTasksByDate(date).sortedBy { it.dateTime }
+            _uiState.value = _uiState.value.copy(tasksForSelectedDate = tasks)
         }
     }
 

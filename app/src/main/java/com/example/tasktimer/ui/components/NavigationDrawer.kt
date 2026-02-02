@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tasktimer.model.Category
@@ -34,11 +33,7 @@ fun DrawerContent(
     onCategoryAdded: () -> Unit = {},
     drawerViewModel: DrawerViewModel = viewModel()
 ) {
-    val showAddCategoryDialog by drawerViewModel.showAddCategoryDialog.collectAsState()
-    val showDeleteCategoryDialog by drawerViewModel.showDeleteCategoryDialog.collectAsState()
-    val showEditCategoryDialog by drawerViewModel.showEditCategoryDialog.collectAsState()
-    val categoryToDelete by drawerViewModel.categoryToDelete.collectAsState()
-    val categoryToEdit by drawerViewModel.categoryToEdit.collectAsState()
+    val uiState = drawerViewModel.uiState.collectAsState().value
     
     var showCategoryOptionsModal by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
@@ -173,7 +168,7 @@ fun DrawerContent(
     }
     
     // Dialog para adicionar categoria
-    if (showAddCategoryDialog) {
+    if (uiState.showAddCategoryDialog) {
         AddCategoryDialog(
             onDismiss = { drawerViewModel.hideAddCategoryDialog() },
             onConfirm = { name, color ->
@@ -184,22 +179,22 @@ fun DrawerContent(
     }
     
     // Dialog para editar categoria
-    if (showEditCategoryDialog && categoryToEdit != null) {
+    if (uiState.showEditCategoryDialog && uiState.categoryToEdit != null) {
         EditCategoryDialog(
-            category = categoryToEdit!!,
+            category = uiState.categoryToEdit!!,
             onDismiss = { 
                 drawerViewModel.hideEditCategoryDialog()
             },
             onConfirm = { name, color ->
                 android.util.Log.d("NavigationDrawer", "Atualizando categoria: $name")
-                drawerViewModel.updateCategory(categoryToEdit!!.id, name, color)
+                drawerViewModel.updateCategory(uiState.categoryToEdit!!.id, name, color)
                 onCategoryAdded()
             }
         )
     }
     
     // Dialog para confirmar exclusão de categoria
-    if (showDeleteCategoryDialog && categoryToDelete != null) {
+    if (uiState.showDeleteCategoryDialog && uiState.categoryToDelete != null) {
         AlertDialog(
             onDismissRequest = { 
                 drawerViewModel.hideDeleteCategoryDialog()
@@ -212,15 +207,15 @@ fun DrawerContent(
             },
             text = { 
                 Text(
-                    "Tem certeza que deseja excluir a categoria '${categoryToDelete!!.name}'? Esta ação não pode ser desfeita e a categoria será removida de todas as tarefas.",
+                    "Tem certeza que deseja excluir a categoria '${uiState.categoryToDelete!!.name}'? Esta ação não pode ser desfeita e a categoria será removida de todas as tarefas.",
                     color = androidx.compose.ui.graphics.Color.Gray
                 ) 
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        android.util.Log.d("NavigationDrawer", "Deletando categoria: ${categoryToDelete!!.name}")
-                        drawerViewModel.deleteCategory(categoryToDelete!!.id)
+                        android.util.Log.d("NavigationDrawer", "Deletando categoria: ${uiState.categoryToDelete!!.name}")
+                        drawerViewModel.deleteCategory(uiState.categoryToDelete!!.id)
                         onCategoryAdded()
                     }
                 ) {

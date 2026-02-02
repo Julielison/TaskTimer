@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.tasktimer.data.FirestoreRepository
 import com.example.tasktimer.data.SampleDataInserter
 import com.example.tasktimer.model.Task
-import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
 import com.example.tasktimer.model.Subtask
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,32 +20,8 @@ class HomeViewModel : ViewModel() {
     // Adicione esta variável para armazenar todas as tasks
     private var allTasks = listOf<Task>()
 
-    private val _overdueTasks = MutableStateFlow<List<Task>>(emptyList())
-    val overdueTasks: StateFlow<List<Task>> = _overdueTasks.asStateFlow()
-
-    private val _todayTasks = MutableStateFlow<List<Task>>(emptyList())
-    val todayTasks: StateFlow<List<Task>> = _todayTasks.asStateFlow()
-
-    private val _tomorrowTasks = MutableStateFlow<List<Task>>(emptyList())
-    val tomorrowTasks: StateFlow<List<Task>> = _tomorrowTasks.asStateFlow()
-
-    private val _laterTasks = MutableStateFlow<List<Task>>(emptyList())
-    val laterTasks: StateFlow<List<Task>> = _laterTasks.asStateFlow()
-
-    private val _completedTasks = MutableStateFlow<List<Task>>(emptyList())
-    val completedTasks: StateFlow<List<Task>> = _completedTasks.asStateFlow()
-
-    private val _categories = MutableStateFlow<List<Category>>(emptyList())
-    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
-
-    private val _pomodoroPresets = MutableStateFlow<List<Pair<String, PomodoroConfig>>>(emptyList())
-    val pomodoroPresets: StateFlow<List<Pair<String, PomodoroConfig>>> = _pomodoroPresets.asStateFlow()
-
-    private val _selectedFilter = MutableStateFlow<TaskFilter>(TaskFilter.All)
-    val selectedFilter: StateFlow<TaskFilter> = _selectedFilter.asStateFlow()
-    
-    private val _filterTitle = MutableStateFlow("Todas")
-    val filterTitle: StateFlow<String> = _filterTitle.asStateFlow()
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         loadData()
@@ -55,7 +30,7 @@ class HomeViewModel : ViewModel() {
     private fun loadData() {
         viewModelScope.launch {
             repository.getCategoriesFlow().collect { categories ->
-                _categories.value = categories
+                _uiState.value = _uiState.value.copy(categories = categories)
             }
         }
         
@@ -68,35 +43,38 @@ class HomeViewModel : ViewModel() {
         
         // Adicione um listener para mudanças no filtro
         viewModelScope.launch {
-            _selectedFilter.collect {
+            _uiState.collect {
                 updateTaskLists(allTasks)
             }
         }
         
-        _pomodoroPresets.value = repository.getPomodoroPresets()
+        _uiState.value = _uiState.value.copy(pomodoroPresets = repository.getPomodoroPresets())
     }
 
     fun selectFilter(filter: TaskFilter) {
-        _selectedFilter.value = filter
-        _filterTitle.value = when (filter) {
+        val filterTitle = when (filter) {
             is TaskFilter.All -> "Todas"
             is TaskFilter.Today -> "Hoje"
             is TaskFilter.Category -> {
-                _categories.value.find { it.id == filter.categoryId }?.name ?: "Categoria"
+                _uiState.value.categories.find { it.id == filter.categoryId }?.name ?: "Categoria"
             }
         }
+        _uiState.value = _uiState.value.copy(
+            selectedFilter = filter,
+            filterTitle = filterTitle
+        )
     }
     
     fun refreshCategories() {
         viewModelScope.launch {
             repository.getCategoriesFlow().collect { categories ->
-                _categories.value = categories
+                _uiState.value = _uiState.value.copy(categories = categories)
             }
         }
     }
 
     private fun updateTaskLists(allTasks: List<Task> = emptyList()) {
-        val filter = _selectedFilter.value
+        val filter = _uiState.value.selectedFilter
         
         val filteredTasks = when (filter) {
             is TaskFilter.All -> allTasks
@@ -112,34 +90,42 @@ class HomeViewModel : ViewModel() {
         val today = java.time.LocalDate.now()
         val tomorrow = today.plusDays(1)
 
-        _overdueTasks.value = filteredTasks
+        val overdue = filteredTasks
             .filter { it.isOverdue && !it.isCompleted }
             .sortedBy { it.dateTime }
 
-        _todayTasks.value = filteredTasks
+        val todayList = filteredTasks
             .filter { 
                 it.dateTime.toLocalDate() == today && !it.isCompleted 
             }
             .sortedBy { it.dateTime }
 
-        _tomorrowTasks.value = filteredTasks
+        val tomorrowList = filteredTasks
             .filter { 
                 it.dateTime.toLocalDate() == tomorrow && !it.isCompleted 
             }
             .sortedBy { it.dateTime }
 
-        _laterTasks.value = filteredTasks
+        val laterList = filteredTasks
             .filter { 
                 it.dateTime.toLocalDate().isAfter(tomorrow) && !it.isCompleted 
             }
             .sortedBy { it.dateTime }
 
-        _completedTasks.value = filteredTasks
+        val completed = filteredTasks
             .filter {
                 it.isCompleted &&
                 it.completedAt?.toLocalDate() == today
             }
             .sortedByDescending { it.completedAt }
+        
+        _uiState.value = _uiState.value.copy(
+            overdueTasks = overdue,
+            todayTasks = todayList,
+            tomorrowTasks = tomorrowList,
+            laterTasks = laterList,
+            completedTasks = completed
+        )
     }
 
     fun toggleTaskCompletion(taskId: String) {
@@ -195,10 +181,4 @@ class HomeViewModel : ViewModel() {
             }
         }
     }
-}
-
-sealed class TaskFilter {
-    object All : TaskFilter()
-    object Today : TaskFilter()
-    data class Category(val categoryId: String) : TaskFilter()
 }

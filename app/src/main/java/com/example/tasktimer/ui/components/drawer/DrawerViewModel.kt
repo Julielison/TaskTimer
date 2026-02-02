@@ -13,23 +13,8 @@ import kotlinx.coroutines.launch
 class DrawerViewModel : ViewModel() {
     private val repository = FirestoreRepository()
 
-    private val _categories = MutableStateFlow<List<Category>>(emptyList())
-    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
-
-    private val _showAddCategoryDialog = MutableStateFlow(false)
-    val showAddCategoryDialog: StateFlow<Boolean> = _showAddCategoryDialog.asStateFlow()
-
-    private val _showEditCategoryDialog = MutableStateFlow(false)
-    val showEditCategoryDialog: StateFlow<Boolean> = _showEditCategoryDialog.asStateFlow()
-
-    private val _showDeleteCategoryDialog = MutableStateFlow(false)
-    val showDeleteCategoryDialog: StateFlow<Boolean> = _showDeleteCategoryDialog.asStateFlow()
-
-    private val _categoryToEdit = MutableStateFlow<Category?>(null)
-    val categoryToEdit: StateFlow<Category?> = _categoryToEdit.asStateFlow()
-
-    private val _categoryToDelete = MutableStateFlow<Category?>(null)
-    val categoryToDelete: StateFlow<Category?> = _categoryToDelete.asStateFlow()
+    private val _uiState = MutableStateFlow(DrawerUiState())
+    val uiState: StateFlow<DrawerUiState> = _uiState.asStateFlow()
 
     init {
         loadCategories()
@@ -38,37 +23,45 @@ class DrawerViewModel : ViewModel() {
     private fun loadCategories() {
         viewModelScope.launch {
             repository.getCategoriesFlow().collect { categories ->
-                _categories.value = categories
+                _uiState.value = _uiState.value.copy(categories = categories)
             }
         }
     }
 
     fun showAddCategoryDialog() {
-        _showAddCategoryDialog.value = true
+        _uiState.value = _uiState.value.copy(showAddCategoryDialog = true)
     }
 
     fun hideAddCategoryDialog() {
-        _showAddCategoryDialog.value = false
+        _uiState.value = _uiState.value.copy(showAddCategoryDialog = false)
     }
 
     fun showEditCategoryDialog(category: Category) {
-        _categoryToEdit.value = category
-        _showEditCategoryDialog.value = true
+        _uiState.value = _uiState.value.copy(
+            categoryToEdit = category,
+            showEditCategoryDialog = true
+        )
     }
 
     fun hideEditCategoryDialog() {
-        _showEditCategoryDialog.value = false
-        _categoryToEdit.value = null
+        _uiState.value = _uiState.value.copy(
+            showEditCategoryDialog = false,
+            categoryToEdit = null
+        )
     }
 
     fun showDeleteCategoryDialog(category: Category) {
-        _categoryToDelete.value = category
-        _showDeleteCategoryDialog.value = true
+        _uiState.value = _uiState.value.copy(
+            categoryToDelete = category,
+            showDeleteCategoryDialog = true
+        )
     }
 
     fun hideDeleteCategoryDialog() {
-        _showDeleteCategoryDialog.value = false
-        _categoryToDelete.value = null
+        _uiState.value = _uiState.value.copy(
+            showDeleteCategoryDialog = false,
+            categoryToDelete = null
+        )
     }
 
     fun addCategory(name: String, color: Color) {

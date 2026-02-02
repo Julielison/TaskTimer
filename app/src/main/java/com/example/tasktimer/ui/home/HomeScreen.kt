@@ -71,14 +71,7 @@ fun HomeContent(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel()
 ) {
-    val overdueTasks by viewModel.overdueTasks.collectAsState()
-    val todayTasks by viewModel.todayTasks.collectAsState()
-    val tomorrowTasks by viewModel.tomorrowTasks.collectAsState()
-    val laterTasks by viewModel.laterTasks.collectAsState()
-    val completedTasks by viewModel.completedTasks.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
-    val filterTitle by viewModel.filterTitle.collectAsState()
+    val uiState = viewModel.uiState.collectAsState().value
     var showAddTaskDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
 
@@ -97,8 +90,8 @@ fun HomeContent(
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             DrawerContent(
-                categories = categories,
-                selectedFilter = viewModel.selectedFilter.collectAsState().value,
+                categories = uiState.categories,
+                selectedFilter = uiState.selectedFilter,
                 onFilterSelected = { filter ->
                     viewModel.selectFilter(filter)
                     scope.launch { drawerState.close() }
@@ -113,7 +106,7 @@ fun HomeContent(
             containerColor = DarkBackground,
             topBar = { 
                 HomeTopBar(
-                    title = filterTitle,
+                    title = uiState.filterTitle,
                     onMenuClick = { 
                         scope.launch { drawerState.open() } 
                     },
@@ -143,11 +136,11 @@ fun HomeContent(
                     .verticalScroll(scrollState)
             ) {
                 // Vencidas
-                if (overdueTasks.isNotEmpty()) {
+                if (uiState.overdueTasks.isNotEmpty()) {
                     TaskSection(
                         title = "Vencidas",
-                        taskCount = overdueTasks.size,
-                        tasks = overdueTasks,
+                        taskCount = uiState.overdueTasks.size,
+                        tasks = uiState.overdueTasks,
                         isExpanded = isOverdueExpanded,
                         onToggleExpand = { isOverdueExpanded = !isOverdueExpanded },
                         onTaskClick = { task -> taskToEdit = task },
@@ -157,11 +150,11 @@ fun HomeContent(
                 }
                 
                 // Hoje
-                if (todayTasks.isNotEmpty()) {
+                if (uiState.todayTasks.isNotEmpty()) {
                     TaskSection(
                         title = "Hoje",
-                        taskCount = todayTasks.size,
-                        tasks = todayTasks,
+                        taskCount = uiState.todayTasks.size,
+                        tasks = uiState.todayTasks,
                         isExpanded = isTodayExpanded,
                         onToggleExpand = { isTodayExpanded = !isTodayExpanded },
                         onTaskClick = { task -> taskToEdit = task },
@@ -171,11 +164,11 @@ fun HomeContent(
                 }
                 
                 // Amanhã
-                if (tomorrowTasks.isNotEmpty()) {
+                if (uiState.tomorrowTasks.isNotEmpty()) {
                     TaskSection(
                         title = "Amanhã",
-                        taskCount = tomorrowTasks.size,
-                        tasks = tomorrowTasks,
+                        taskCount = uiState.tomorrowTasks.size,
+                        tasks = uiState.tomorrowTasks,
                         isExpanded = isTomorrowExpanded,
                         onToggleExpand = { isTomorrowExpanded = !isTomorrowExpanded },
                         onTaskClick = { task -> taskToEdit = task },
@@ -185,11 +178,11 @@ fun HomeContent(
                 }
                 
                 // Mais tarde
-                if (laterTasks.isNotEmpty()) {
+                if (uiState.laterTasks.isNotEmpty()) {
                     TaskSection(
                         title = "Mais tarde",
-                        taskCount = laterTasks.size,
-                        tasks = laterTasks,
+                        taskCount = uiState.laterTasks.size,
+                        tasks = uiState.laterTasks,
                         isExpanded = isLaterExpanded,
                         onToggleExpand = { isLaterExpanded = !isLaterExpanded },
                         onTaskClick = { task -> taskToEdit = task },
@@ -199,11 +192,11 @@ fun HomeContent(
                 }
                 
                 // Concluídas
-                if (completedTasks.isNotEmpty()) {
+                if (uiState.completedTasks.isNotEmpty()) {
                     TaskSection(
                         title = "Concluídas",
-                        taskCount = completedTasks.size,
-                        tasks = completedTasks,
+                        taskCount = uiState.completedTasks.size,
+                        tasks = uiState.completedTasks,
                         isExpanded = isCompletedExpanded,
                         onToggleExpand = { isCompletedExpanded = !isCompletedExpanded },
                         onTaskClick = { task -> taskToEdit = task },
@@ -212,8 +205,8 @@ fun HomeContent(
                 }
                 
                 // Mensagem quando não há tasks
-                if (overdueTasks.isEmpty() && todayTasks.isEmpty() && tomorrowTasks.isEmpty() && 
-                    laterTasks.isEmpty() && completedTasks.isEmpty()) {
+                if (uiState.overdueTasks.isEmpty() && uiState.todayTasks.isEmpty() && uiState.tomorrowTasks.isEmpty() && 
+                    uiState.laterTasks.isEmpty() && uiState.completedTasks.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -274,8 +267,8 @@ fun HomeContent(
                 onDelete = if (taskToEdit != null) { taskId ->
                     viewModel.deleteTask(taskId)
                 } else null,
-                categories = categories,
-                pomodoroPresets = pomodoroPresets,
+                categories = uiState.categories,
+                pomodoroPresets = uiState.pomodoroPresets,
                 existingTask = taskToEdit
             )
         }

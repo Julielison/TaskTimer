@@ -3,7 +3,6 @@ package com.example.tasktimer.ui.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tasktimer.data.FirestoreRepository
-import com.example.tasktimer.model.Category
 import com.example.tasktimer.model.PomodoroConfig
 import com.example.tasktimer.model.Subtask
 import com.example.tasktimer.model.Task
@@ -16,20 +15,8 @@ import java.time.LocalDateTime
 class SearchViewModel : ViewModel() {
     private val repository = FirestoreRepository()
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-
-    private val _selectedCategoryIds = MutableStateFlow<Set<String>>(emptySet())
-    val selectedCategoryIds: StateFlow<Set<String>> = _selectedCategoryIds.asStateFlow()
-
-    private val _searchResults = MutableStateFlow<List<Task>>(emptyList())
-    val searchResults: StateFlow<List<Task>> = _searchResults.asStateFlow()
-
-    private val _categories = MutableStateFlow<List<Category>>(emptyList())
-    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
-
-    private val _pomodoroPresets = MutableStateFlow<List<Pair<String, PomodoroConfig>>>(emptyList())
-    val pomodoroPresets: StateFlow<List<Pair<String, PomodoroConfig>>> = _pomodoroPresets.asStateFlow()
+    private val _uiState = MutableStateFlow(SearchUiState())
+    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     private val _allTasks = MutableStateFlow<List<Task>>(emptyList())
 
@@ -40,7 +27,7 @@ class SearchViewModel : ViewModel() {
     private fun loadData() {
         viewModelScope.launch {
             repository.getCategoriesFlow().collect { categories ->
-                _categories.value = categories
+                _uiState.value = _uiState.value.copy(categories = categories)
             }
         }
 
@@ -51,39 +38,41 @@ class SearchViewModel : ViewModel() {
             }
         }
 
-        _pomodoroPresets.value = repository.getPomodoroPresets()
+        _uiState.value = _uiState.value.copy(pomodoroPresets = repository.getPomodoroPresets())
     }
 
     fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
+        _uiState.value = _uiState.value.copy(searchQuery = query)
     }
 
     fun toggleCategory(categoryId: String) {
-        val currentIds = _selectedCategoryIds.value.toMutableSet()
+        val currentIds = _uiState.value.selectedCategoryIds.toMutableSet()
         if (currentIds.contains(categoryId)) {
             currentIds.remove(categoryId)
         } else {
             currentIds.add(categoryId)
         }
-        _selectedCategoryIds.value = currentIds
+        _uiState.value = _uiState.value.copy(selectedCategoryIds = currentIds)
     }
 
     fun removeCategory(categoryId: String) {
-        _selectedCategoryIds.value = _selectedCategoryIds.value - categoryId
+        _uiState.value = _uiState.value.copy(
+            selectedCategoryIds = _uiState.value.selectedCategoryIds - categoryId
+        )
     }
 
     fun performSearch() {
-        val query = _searchQuery.value.trim()
-        val categoryIds = _selectedCategoryIds.value
+        val query = _uiState.value.searchQuery.trim()
+        val categoryIds = _uiState.value.selectedCategoryIds
 
         if (query.isEmpty() && categoryIds.isEmpty()) {
-            _searchResults.value = emptyList()
+            _uiState.value = _uiState.value.copy(searchResults = emptyList())
             return
         }
 
         val allTasks = _allTasks.value
 
-        _searchResults.value = allTasks.filter { task ->
+        val results = allTasks.filter { task ->
             val matchesQuery = if (query.isEmpty()) {
                 true
             } else {
@@ -99,6 +88,8 @@ class SearchViewModel : ViewModel() {
 
             matchesQuery && matchesCategory
         }.sortedByDescending { it.dateTime }
+        
+        _uiState.value = _uiState.value.copy(searchResults = results)
     }
 
     fun toggleTaskCompletion(taskId: String) {

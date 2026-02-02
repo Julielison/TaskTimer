@@ -67,11 +67,7 @@ import com.example.tasktimer.ui.theme.TextWhite
 fun SearchContent(
     viewModel: SearchViewModel = viewModel()
 ) {
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val selectedCategoryIds by viewModel.selectedCategoryIds.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val pomodoroPresets by viewModel.pomodoroPresets.collectAsState()
+    val uiState = viewModel.uiState.collectAsState().value
     var showFilterDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
     val scrollState = rememberScrollState()
@@ -80,11 +76,11 @@ fun SearchContent(
         containerColor = DarkBackground,
         topBar = {
             SearchTopBar(
-                searchQuery = searchQuery,
+                searchQuery = uiState.searchQuery,
                 onSearchQueryChange = { viewModel.updateSearchQuery(it) },
                 onSearch = { viewModel.performSearch() },
                 onFilterClick = { showFilterDialog = true },
-                selectedCategoriesCount = selectedCategoryIds.size
+                selectedCategoriesCount = uiState.selectedCategoryIds.size
             )
         }
     ) { paddingValues ->
@@ -96,7 +92,7 @@ fun SearchContent(
                 .verticalScroll(scrollState)
         ) {
             // Categorias selecionadas com FlowRow
-            if (selectedCategoryIds.isNotEmpty()) {
+            if (uiState.selectedCategoryIds.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -104,8 +100,8 @@ fun SearchContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    selectedCategoryIds.forEach { categoryId ->
-                        val category = categories.find { it.id == categoryId }
+                    uiState.selectedCategoryIds.forEach { categoryId ->
+                        val category = uiState.categories.find { it.id == categoryId }
                         category?.let {
                             FilterChip(
                                 category = it,
@@ -117,23 +113,23 @@ fun SearchContent(
             }
 
             // Resultados
-            if (searchResults.isNotEmpty()) {
+            if (uiState.searchResults.isNotEmpty()) {
                 Text(
-                    text = "${searchResults.size} resultado${if (searchResults.size > 1) "s" else ""} encontrado${if (searchResults.size > 1) "s" else ""}",
+                    text = "${uiState.searchResults.size} resultado${if (uiState.searchResults.size > 1) "s" else ""} encontrado${if (uiState.searchResults.size > 1) "s" else ""}",
                     color = TextGray,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                searchResults.forEach { task ->
+                uiState.searchResults.forEach { task ->
                     SearchTaskItem(
                         task = task,
                         onClick = { taskToEdit = task },
                         onToggle = { viewModel.toggleTaskCompletion(task.id) },
-                        categories = categories
+                        categories = uiState.categories
                     )
                 }
-            } else if (searchQuery.isNotEmpty() || selectedCategoryIds.isNotEmpty()) {
+            } else if (uiState.searchQuery.isNotEmpty() || uiState.selectedCategoryIds.isNotEmpty()) {
                 // Mensagem quando não há resultados
                 Box(
                     modifier = Modifier
@@ -188,8 +184,8 @@ fun SearchContent(
     // Diálogo de filtro
     if (showFilterDialog) {
         FilterDialog(
-            categories = categories,
-            selectedCategoryIds = selectedCategoryIds,
+            categories = uiState.categories,
+            selectedCategoryIds = uiState.selectedCategoryIds,
             onDismiss = { showFilterDialog = false },
             onCategoryToggled = { categoryId ->
                 viewModel.toggleCategory(categoryId)
@@ -213,8 +209,8 @@ fun SearchContent(
                 )
                 taskToEdit = null
             },
-            categories = categories,
-            pomodoroPresets = pomodoroPresets,
+            categories = uiState.categories,
+            pomodoroPresets = uiState.pomodoroPresets,
             existingTask = taskToEdit
         )
     }
